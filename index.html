@@ -270,19 +270,49 @@
       <!-- ════ 條件式題目：竊盜案 ════ -->
       <div id="cond-theft" class="conditional-section" hidden>
 
+        <!-- Q6 請求鑑識支援時間 -->
         <div class="question-block" data-required>
-          <label>6. 竊盜案現場狀況請勾選 <span class="required">*</span></label>
-          <p class="hint">請勾選所有符合現場狀況的項目（至少一項）</p>
+          <label>6. 請求鑑識支援時間 <span class="required">*</span></label>
           <div class="option-group">
-            <label class="option-item"><input type="checkbox" name="interests" value="本案現場特殊，無法保留至翌日" /> 本案現場特殊，無法保留至翌日</label>
-            <label class="option-item"><input type="checkbox" name="interests" value="本案被害人有緊急事由，無法等候至翌日" /> 本案被害人有緊急事由，無法等候至翌日</label>
-            <label class="option-item"><input type="checkbox" name="interests" value="本案被害人為長官請託或其他特殊人士" /> 本案被害人為長官請託或其他特殊人士</label>
+            <label class="option-item"><input type="radio" name="theft_time" value="一般時間(9:00~21:00)" /> 一般時間(9:00~21:00)</label>
+            <label class="option-item"><input type="radio" name="theft_time" value="非勤務期間(21:00~9:00)" /> 非勤務期間(21:00~9:00)</label>
           </div>
-          <span class="error-msg">請至少勾選一項</span>
+          <span class="error-msg">請選擇一項</span>
+        </div>
+
+        <!-- Q7 竊盜案現場狀況 — 一般時間分支 -->
+        <div id="theft-time-normal" class="conditional-section" hidden>
+          <div class="question-block" data-required>
+            <label>7. 竊盜案現場狀況請勾選 <span class="required">*</span></label>
+            <p class="hint">請勾選所有符合現場狀況的項目（至少一項）</p>
+            <div class="option-group">
+              <label class="option-item"><input type="checkbox" name="interests" value="現場有監視器影像可供調閱" /> 現場有監視器影像可供調閱</label>
+              <label class="option-item"><input type="checkbox" name="interests" value="現場為密閉空間(非開放之工地、戶外)" /> 現場為密閉空間(非開放之工地、戶外)</label>
+              <label class="option-item"><input type="checkbox" name="interests" value="現場未發現明顯破壞或侵入情形" /> 現場未發現明顯破壞或侵入情形</label>
+              <label class="option-item"><input type="checkbox" name="interests" value="現場未發現明顯翻動情形" /> 現場未發現明顯翻動情形</label>
+              <label class="option-item"><input type="checkbox" name="interests" value="現場失竊物品主要為電纜線" /> 現場失竊物品主要為電纜線</label>
+              <label class="option-item"><input type="checkbox" name="interests" value="現場發現非被害人遺留之飲料手套等物品" /> 現場發現非被害人遺留之飲料手套等物品</label>
+            </div>
+            <span class="error-msg">請至少勾選一項</span>
+          </div>
+        </div>
+
+        <!-- Q7 竊盜案現場狀況 — 非勤務期間分支 -->
+        <div id="theft-time-offduty" class="conditional-section" hidden>
+          <div class="question-block" data-required>
+            <label>7. 竊盜案現場狀況請勾選 <span class="required">*</span></label>
+            <p class="hint">請勾選所有符合現場狀況的項目（至少一項）</p>
+            <div class="option-group">
+              <label class="option-item"><input type="checkbox" name="interests" value="本案現場特殊，無法保留至翌日" /> 本案現場特殊，無法保留至翌日</label>
+              <label class="option-item"><input type="checkbox" name="interests" value="本案被害人有緊急事由，無法等候至翌日" /> 本案被害人有緊急事由，無法等候至翌日</label>
+              <label class="option-item"><input type="checkbox" name="interests" value="本案被害人為長官請託或其他特殊人士" /> 本案被害人為長官請託或其他特殊人士</label>
+            </div>
+            <span class="error-msg">請至少勾選一項</span>
+          </div>
         </div>
 
         <div class="question-block" data-required>
-          <label>7. 被害人性別 <span class="required">*</span></label>
+          <label>8. 被害人性別 <span class="required">*</span></label>
           <div class="option-group">
             <label class="option-item"><input type="radio" name="theft_gender" value="男性" /> 男性</label>
             <label class="option-item"><input type="radio" name="theft_gender" value="女性" /> 女性</label>
@@ -292,13 +322,13 @@
         </div>
 
         <div class="question-block" data-required>
-          <label>8. 被害人出生年份 <span class="required">*</span></label>
+          <label>9. 被害人出生年份 <span class="required">*</span></label>
           <input type="text" id="birth-theft" name="victim_birth_year" placeholder="例：1985 或民國74年填74" />
           <span class="error-msg">此欄位為必填</span>
         </div>
 
         <div class="question-block" data-required>
-          <label>9. 被害人國籍 <span class="required">*</span></label>
+          <label>10. 被害人國籍 <span class="required">*</span></label>
           <div class="option-group">
             <label class="option-item"><input type="radio" name="theft_nationality" value="本國籍" /> 本國籍</label>
             <label class="option-item"><input type="radio" name="theft_nationality" value="非本國籍" /> 非本國籍</label>
@@ -308,7 +338,7 @@
         </div>
 
         <div class="question-block" data-required>
-          <label>10. 本案是否掌握可疑涉嫌人(或被害人提供可疑對象) <span class="required">*</span></label>
+          <label>11. 本案是否掌握可疑涉嫌人(或被害人提供可疑對象) <span class="required">*</span></label>
           <div class="option-group">
             <label class="option-item"><input type="radio" name="theft_suspect" value="有" /> 有</label>
             <label class="option-item"><input type="radio" name="theft_suspect" value="無" /> 無</label>
@@ -318,7 +348,16 @@
         </div>
 
         <div class="question-block" data-required>
-          <label>11. 竊盜案情描述 <span class="required">*</span></label>
+          <label>12. 本案已經完成被害人筆錄及採證同意書 <span class="required">*</span></label>
+          <div class="option-group">
+            <label class="option-item"><input type="radio" name="theft_record" value="是" /> 是</label>
+            <label class="option-item"><input type="radio" name="theft_record" value="否" /> 否</label>
+          </div>
+          <span class="error-msg">請選擇一項</span>
+        </div>
+
+        <div class="question-block" data-required>
+          <label>13. 竊盜案情描述 <span class="required">*</span></label>
           <p class="hint">請描述為何種竊盜案，以及需要鑑識採證之情形</p>
           <textarea id="q10-theft" name="q10" placeholder="請填寫案件概況及採證需求…" rows="4"></textarea>
           <span class="error-msg">此欄位為必填</span>
@@ -459,8 +498,30 @@ document.querySelectorAll('[name="source"]').forEach(radio => {
       el.querySelectorAll('.option-item').forEach(i => i.classList.remove('selected'));
       el.querySelectorAll('.question-block').forEach(b => b.classList.remove('has-error'));
     });
+    // 重置竊盜案時間子分支
+    document.getElementById('theft-time-normal').hidden = true;
+    document.getElementById('theft-time-offduty').hidden = true;
     const targetId = COND_MAP[radio.value];
     if (targetId) document.getElementById(targetId).hidden = false;
+    updateProgress();
+  });
+});
+
+// ── 竊盜案時間分支 ──
+document.querySelectorAll('[name="theft_time"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    const normalEl  = document.getElementById('theft-time-normal');
+    const offdutyEl = document.getElementById('theft-time-offduty');
+    [normalEl, offdutyEl].forEach(el => {
+      el.hidden = true;
+      el.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+        cb.closest('.option-item')?.classList.remove('selected');
+      });
+      el.querySelectorAll('.question-block').forEach(b => b.classList.remove('has-error'));
+    });
+    if (radio.value === '一般時間(9:00~21:00)') normalEl.hidden = false;
+    else offdutyEl.hidden = false;
     updateProgress();
   });
 });
@@ -491,15 +552,27 @@ function countFilled() {
 
   const activeSection = document.querySelector('.conditional-section:not([hidden])');
   if (activeSection) {
+    const isTheft        = activeSection.id === 'cond-theft';
     const hasDeathMethod = !!activeSection.querySelector('[name="death_method"]');
-    total += hasDeathMethod ? 6 : 5;
-    if (activeSection.querySelector('[name="interests"]:checked'))     filled++;
-    if (hasDeathMethod &&
-        activeSection.querySelector('[name="death_method"]:checked'))  filled++;
-    if (activeSection.querySelector('[name$="_gender"]:checked'))      filled++;
-    if (activeSection.querySelector('[id^="birth-"]')?.value.trim())  filled++;
-    if (activeSection.querySelector('[name$="_nationality"]:checked')) filled++;
-    if (activeSection.querySelector('[name$="_suspect"]:checked'))     filled++;
+    if (isTheft) {
+      total += 7; // theft_time, interests, gender, birth, nationality, suspect, record
+      if (activeSection.querySelector('[name="theft_time"]:checked'))    filled++;
+      if (activeSection.querySelector('[name="interests"]:checked'))     filled++;
+      if (activeSection.querySelector('[name$="_gender"]:checked'))      filled++;
+      if (activeSection.querySelector('[id^="birth-"]')?.value.trim())  filled++;
+      if (activeSection.querySelector('[name$="_nationality"]:checked')) filled++;
+      if (activeSection.querySelector('[name$="_suspect"]:checked'))     filled++;
+      if (activeSection.querySelector('[name="theft_record"]:checked'))  filled++;
+    } else {
+      total += hasDeathMethod ? 6 : 5;
+      if (activeSection.querySelector('[name="interests"]:checked'))     filled++;
+      if (hasDeathMethod &&
+          activeSection.querySelector('[name="death_method"]:checked'))  filled++;
+      if (activeSection.querySelector('[name$="_gender"]:checked'))      filled++;
+      if (activeSection.querySelector('[id^="birth-"]')?.value.trim())  filled++;
+      if (activeSection.querySelector('[name$="_nationality"]:checked')) filled++;
+      if (activeSection.querySelector('[name$="_suspect"]:checked'))     filled++;
+    }
   }
   return (filled / total) * 100;
 }
@@ -616,6 +689,8 @@ document.getElementById('surveyForm').addEventListener('submit', async (e) => {
     : null;
 
   const deathMethodValues = activeSection?.querySelector('[name="death_method"]:checked')?.value || '';
+  const theftTimeEl   = activeSection?.querySelector('[name="theft_time"]:checked');
+  const theftRecordEl = activeSection?.querySelector('[name="theft_record"]:checked');
   const genderEl      = activeSection?.querySelector('[name$="_gender"]:checked');
   const birthEl       = activeSection?.querySelector('[id^="birth-"]');
   const nationalityEl = activeSection?.querySelector('[name$="_nationality"]:checked');
@@ -623,11 +698,13 @@ document.getElementById('surveyForm').addEventListener('submit', async (e) => {
   const q10El         = activeSection?.querySelector('[id^="q10-"]');
 
   const victimInfo = [
-    deathMethodValues       ? `死亡方式：${deathMethodValues}`    : null,
-    genderEl                ? `性別：${genderEl.value}`           : null,
-    birthEl?.value.trim()   ? `出生年份：${birthEl.value.trim()}` : null,
-    nationalityEl           ? `國籍：${nationalityEl.value}`      : null,
-    suspectEl               ? `涉嫌人：${suspectEl.value}`        : null,
+    deathMethodValues       ? `死亡方式：${deathMethodValues}`               : null,
+    theftTimeEl             ? `請求支援時間：${theftTimeEl.value}`            : null,
+    genderEl                ? `性別：${genderEl.value}`                      : null,
+    birthEl?.value.trim()   ? `出生年份：${birthEl.value.trim()}`            : null,
+    nationalityEl           ? `國籍：${nationalityEl.value}`                 : null,
+    suspectEl               ? `涉嫌人：${suspectEl.value}`                   : null,
+    theftRecordEl           ? `被害人筆錄及採證同意書：${theftRecordEl.value}` : null,
   ].filter(Boolean).join('\n');
 
   const q10 = q10El?.value.trim() || null;
