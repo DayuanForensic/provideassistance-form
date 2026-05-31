@@ -757,6 +757,24 @@ function insertPhrase(text) {
   ta.focus();
 }
 
+let _phraseClickTimer = null;
+function handlePhraseClick(input) {
+  if (_phraseClickTimer) {
+    // 雙擊：進入編輯模式
+    clearTimeout(_phraseClickTimer);
+    _phraseClickTimer = null;
+    input.select();
+  } else {
+    // 等待看是否為雙擊
+    _phraseClickTimer = setTimeout(() => {
+      _phraseClickTimer = null;
+      // 單擊：帶入語句
+      const v = input.value.trim();
+      if (v) { insertPhrase(v); input.blur(); }
+    }, 220);
+  }
+}
+
 function saveCustomPhrases() {
   const arr = [];
   for (let i = 0; i < 10; i++) arr.push(document.getElementById('cp'+i)?.value || '');
@@ -774,12 +792,12 @@ function renderPhrasePanel(source) {
     opts.forEach(o => { h += `<button type="button" class="phrase-chip" onclick="insertPhrase('${esc(o)}')">${o}</button>`; });
     h += `</div>`;
   }
-  h += `<div class="phrase-label" style="margin-top:.6rem">✏️ 自訂語句（點一下帶入；修改後自動儲存）</div><div class="custom-phrase-grid">`;
+  h += `<div class="phrase-label" style="margin-top:.6rem">✏️ 自訂語句（點一下帶入；點兩下重新編輯；修改後自動儲存）</div><div class="custom-phrase-grid">`;
   for (let i = 0; i < 10; i++) {
     const v = (saved[i] || '').replace(/"/g,'&quot;');
     h += `<input type="text" id="cp${i}" class="custom-phrase-input" value="${v}" placeholder="自訂語句 ${i+1}"
       onchange="saveCustomPhrases()"
-      onclick="const v=this.value.trim();if(v)insertPhrase(v)" />`;
+      onclick="handlePhraseClick(this)" />`;
   }
   h += `</div></div>`;
   document.getElementById('phrasePanelContainer').innerHTML = h;
@@ -954,8 +972,8 @@ function exportCSV() {
   }
 
   const headers = [
-    '結案時間', '填寫者姓名', '填寫者Email', '填寫者電話',
-    '原始填寫時間', '來源管道', '感興趣主題', '整體滿意度', '建議與想法',
+    '結案時間', '申請人姓名', '手機號碼', '駐地單位',
+    '填寫時間', '案件類別', '現場狀況', '被害人資訊',
     '處理人員', '處理結果', '案件摘要'
   ];
 
@@ -969,7 +987,6 @@ function exportCSV() {
     fmt(r.snapshot_submitted_at),
     clean(r.snapshot_source),
     clean(r.snapshot_interests),
-    r.snapshot_satisfaction ?? '',
     clean(r.snapshot_suggestion),
     clean(r.handler_name),
     clean(r.handling_result),
