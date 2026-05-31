@@ -739,7 +739,7 @@ document.getElementById('surveyForm').addEventListener('submit', async (e) => {
           `今日鑑識值班人員為 <span class="duty-name">${duty.name}</span>` +
           `，請務必撥打聯繫電話 <span class="duty-phone">${duty.phone}</span> 或偵查隊警用 3310。`;
       } else {
-        msgEl.textContent = '您的申請已送出，請詳讀以下文字，並務必保持電話暢通。';
+        msgEl.textContent = '您的申請已送出，請記得聯繫鑑識人員，並務必保持電話暢通。';
       }
     } catch (_) {}
     document.getElementById('successScreen').style.display = 'block';
