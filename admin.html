@@ -1395,7 +1395,11 @@ async function triggerExport(month = null, force = false) {
     try { result = await resp.json(); } catch {}
 
     if (resp.ok) {
-      showToast(`✅ 匯出成功，共 ${result.rows ?? 0} 筆`);
+      if (result.message) {
+        showToast(`ℹ️ ${result.message}`);
+      } else {
+        showToast(`✅ 匯出成功，共 ${result.rows ?? 0} 筆`);
+      }
     } else {
       showToast(`匯出失敗：${result.error || resp.statusText}`, 'error');
     }
