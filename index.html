@@ -630,10 +630,22 @@ document.querySelectorAll('[name="name"],[name="phone_num"],[name="unit"],[name=
   });
 
 // ── 表單驗證 & 送出 ──
+const COOLDOWN_KEY = 'plan_b_last_submit';
+const COOLDOWN_MS  = 30 * 60 * 1000; // 30 分鐘
+
 document.getElementById('surveyForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
   if (document.querySelector('[name="_gotcha"]').value !== '') return;
+
+  // 冷卻檢查：30 分鐘內只允許送出一次
+  const lastSubmit = parseInt(localStorage.getItem(COOLDOWN_KEY) || '0', 10);
+  const remaining  = COOLDOWN_MS - (Date.now() - lastSubmit);
+  if (remaining > 0) {
+    const mins = Math.ceil(remaining / 60000);
+    alert(`您已送出申請，請等待 ${mins} 分鐘後再試。`);
+    return;
+  }
 
   let valid = true;
   document.querySelectorAll('.question-block[data-required]').forEach(block => {
@@ -729,6 +741,7 @@ document.getElementById('surveyForm').addEventListener('submit', async (e) => {
   const { error } = await _sb.from('submissions').insert(payload);
 
   if (!error) {
+    localStorage.setItem(COOLDOWN_KEY, String(Date.now()));
     form.style.display = 'none';
     try {
       const duty = await getTodayDutyOfficer();
