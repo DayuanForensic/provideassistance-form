@@ -328,13 +328,13 @@
       </div>
       <div class="field-group">
         <label>處理結果 <span class="required">*</span></label>
-        <div style="display:flex;gap:10px;margin-top:.35rem;flex-wrap:wrap;">
-          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;padding:.4rem .9rem;border:1.5px solid var(--border);border-radius:8px;white-space:nowrap;">
-            <input type="radio" name="handlingResultRadio" id="hrGo"    value="前往現場勘察" style="accent-color:var(--primary);" onchange="syncHandlingResult();autoSaveDraft()" />
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:.35rem;">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;padding:.4rem .9rem;border:1.5px solid var(--border);border-radius:8px;">
+            <input type="radio" name="handlingResultRadio" id="hrGo"    value="前往現場勘察" style="accent-color:var(--primary);flex-shrink:0;" onchange="syncHandlingResult();autoSaveDraft()" />
             <span style="font-size:.92rem;">前往現場勘察</span>
           </label>
-          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;padding:.4rem .9rem;border:1.5px solid var(--border);border-radius:8px;white-space:nowrap;">
-            <input type="radio" name="handlingResultRadio" id="hrDefer" value="暫緩現場勘察" style="accent-color:var(--primary);" onchange="syncHandlingResult();autoSaveDraft()" />
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;padding:.4rem .9rem;border:1.5px solid var(--border);border-radius:8px;">
+            <input type="radio" name="handlingResultRadio" id="hrDefer" value="暫緩現場勘察" style="accent-color:var(--primary);flex-shrink:0;" onchange="syncHandlingResult();autoSaveDraft()" />
             <span style="font-size:.92rem;">暫緩現場勘察</span>
           </label>
         </div>
