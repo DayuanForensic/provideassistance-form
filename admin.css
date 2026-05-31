@@ -54,6 +54,27 @@ body {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 1rem;
 }
+.mfa-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1rem;
+}
+.mfa-secret-box {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: .5rem .75rem;
+  font-family: monospace;
+  font-size: .83rem;
+  word-break: break-all;
+  text-align: center;
+  color: #333;
+  margin: .4rem 0 1rem;
+  letter-spacing: .05em;
+}
 
 .login-card {
   background: #fff;
