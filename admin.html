@@ -57,6 +57,18 @@
     .hr-option-item input[type="radio"] { width: 16px; height: 16px; accent-color: var(--primary); flex-shrink: 0; margin: 0; }
     .hr-option-item span { font-size: .92rem; }
     .hr-option-item.selected { border-color: var(--primary); background: #ede9fe; }
+    /* ── 個人案件摘要範本 ── */
+    .summary-toolbar { display: flex; justify-content: flex-end; margin-top: .45rem; }
+    .btn-save-template { font-size: .8rem; padding: .35rem .8rem; border: 1.5px solid var(--primary); color: var(--primary); background: #fff; border-radius: 6px; cursor: pointer; font-family: inherit; transition: background .15s; }
+    .btn-save-template:hover { background: #ede9fe; }
+    .template-row { margin-top: .7rem; }
+    .template-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .template-chip { font-size: .82rem; padding: 4px 12px; border-radius: 20px; font-family: inherit; }
+    .template-chip.filled { background: #eef2ff; border: 1.5px solid var(--primary); color: var(--primary); cursor: pointer; transition: background .15s, color .15s; }
+    .template-chip.filled:hover { background: var(--primary); color: #fff; }
+    .template-chip.empty { background: #f1f5f9; border: 1.5px dashed var(--border); color: var(--muted); }
+    .save-template-hint { font-size: .9rem; color: var(--text); margin-bottom: .5rem; line-height: 1.6; }
+    .template-replace-options { display: flex; flex-direction: column; gap: .5rem; }
     /* ── 匯出設定 ── */
     .export-section { padding: 1.4rem 1.6rem 0; }
     .export-section h3 { font-size: .97rem; font-weight: 600; color: var(--text); margin: 0 0 .85rem; }
@@ -352,6 +364,11 @@
         <textarea id="caseSummaryText" rows="18"
           placeholder="點擊下方語句可帶入游標位置…" style="font-size:.85rem;line-height:1.7;font-family:inherit;"
           oninput="autoSaveDraft()"></textarea>
+        <div class="summary-toolbar">
+          <button type="button" class="btn-save-template" onclick="openSaveTemplateModal()">💾 存為範本</button>
+        </div>
+        <!-- 個人範本（範本一二三） -->
+        <div id="caseTemplateRow" class="template-row"></div>
         <!-- 快速語句面板 -->
         <div id="phrasePanelContainer"></div>
       </div>
@@ -360,6 +377,47 @@
     <div class="modal-footer">
       <button class="btn-outline" onclick="hideCloseCaseModal()">取消</button>
       <button class="btn-danger"  id="confirmCloseBtn" onclick="confirmCloseCase()">確認結案</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     MODAL：存為範本
+══════════════════════════════════════════════ -->
+<div id="saveTemplateModal" class="modal-overlay" hidden>
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header">
+      <h3>💾 存為範本</h3>
+      <button class="btn-icon" onclick="hideSaveTemplateModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="saveTemplateSlotArea"></div>
+      <div class="field-group" style="margin-top:1rem">
+        <label>範本名稱 <span class="required">*</span>（上限 8 字）</label>
+        <input type="text" id="templateNameInput" maxlength="8" placeholder="例：工安意外、燒炭自殺" />
+        <div id="templateNameErr" class="login-error" hidden style="margin-top:.4rem"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="hideSaveTemplateModal()">取消</button>
+      <button class="btn-primary" onclick="confirmSaveTemplate()">確定儲存</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     MODAL：通用確認對話框
+══════════════════════════════════════════════ -->
+<div id="confirmDialog" class="modal-overlay" hidden>
+  <div class="modal-box" style="max-width:380px">
+    <div class="modal-body" style="padding-top:1.6rem">
+      <p id="confirmDialogMsg" style="font-size:.95rem;line-height:1.65"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" id="confirmDialogNo">取消</button>
+      <button class="btn-primary" id="confirmDialogYes">確定</button>
     </div>
   </div>
 </div>
@@ -702,6 +760,8 @@ async function saveNote(id) {
 function closeAllModals() {
   document.getElementById('closeCaseModal').hidden = true;
   document.getElementById('caseDetailModal').hidden = true;
+  document.getElementById('saveTemplateModal').hidden = true;
+  document.getElementById('confirmDialog').hidden = true;
   S.pendingId = null;
 }
 
@@ -891,6 +951,155 @@ function renderPhrasePanel(source) {
   document.getElementById('phrasePanelContainer').innerHTML = h;
 }
 
+// ════════════════════════════════════════════════════════
+// 個人案件摘要範本（依 email × 案類，最多 3 個）
+// ════════════════════════════════════════════════════════
+let _caseTemplates        = [null, null, null];
+let _currentTemplateSource = '';
+let _saveTemplateTarget   = -1;
+
+async function loadCaseTemplates(source) {
+  _currentTemplateSource = source;
+  _caseTemplates = [null, null, null];
+  const { data } = await sb.from('user_case_templates')
+    .select('templates')
+    .eq('user_email', S.user.email)
+    .eq('source', source)
+    .maybeSingle();
+  const arr = data?.templates;
+  if (Array.isArray(arr)) {
+    for (let i = 0; i < 3; i++) {
+      const t = arr[i];
+      _caseTemplates[i] = (t && typeof t === 'object' && t.name) ? { name: t.name, content: t.content || '' } : null;
+    }
+  }
+}
+
+async function persistCaseTemplates() {
+  await sb.from('user_case_templates').upsert({
+    user_email: S.user.email,
+    source:     _currentTemplateSource,
+    templates:  _caseTemplates,
+    updated_at: new Date().toISOString(),
+  });
+}
+
+function renderCaseTemplateRow() {
+  const esc = t => String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let h = `<div class="phrase-label">📄 個人範本（點選帶入；點「存為範本」儲存目前摘要）</div><div class="template-chips">`;
+  for (let i = 0; i < 3; i++) {
+    const t = _caseTemplates[i];
+    if (t) {
+      h += `<button type="button" class="template-chip filled" onclick="applyCaseTemplate(${i})">範本${i+1}・${esc(t.name)}</button>`;
+    } else {
+      h += `<span class="template-chip empty">範本${i+1}（空）</span>`;
+    }
+  }
+  h += `</div>`;
+  document.getElementById('caseTemplateRow').innerHTML = h;
+}
+
+async function applyCaseTemplate(i) {
+  const t = _caseTemplates[i];
+  if (!t) return;
+  const ta = document.getElementById('caseSummaryText');
+  if (ta.value.trim()) {
+    const ok = await customConfirm(`確定以範本「${t.name}」取代目前的案件摘要內容嗎？此動作無法復原。`);
+    if (!ok) return;
+  }
+  ta.value = t.content;
+  autoSaveDraft();
+  showToast(`✅ 已帶入範本「${t.name}」`);
+}
+
+function openSaveTemplateModal() {
+  const content = document.getElementById('caseSummaryText').value;
+  if (!content.trim()) {
+    showToast('❌ 請先填寫案件摘要', 'error');
+    return;
+  }
+  const slotArea = document.getElementById('saveTemplateSlotArea');
+  const nameInput = document.getElementById('templateNameInput');
+  document.getElementById('templateNameErr').hidden = true;
+
+  const emptyIdx = _caseTemplates.findIndex(t => !t);
+  if (emptyIdx !== -1) {
+    // 還有空位：自動指定第一個空位
+    _saveTemplateTarget = emptyIdx;
+    slotArea.innerHTML = `<p class="save-template-hint">目前內容將儲存至 <strong>範本${emptyIdx+1}</strong>，請輸入名稱：</p>`;
+    nameInput.value = '';
+  } else {
+    // 範本已滿：詢問要取代哪一個
+    _saveTemplateTarget = -1;
+    const escName = t => String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    let opts = `<p class="save-template-hint">範本欄已滿，請選擇要取代的範本：</p><div class="template-replace-options">`;
+    for (let i = 0; i < 3; i++) {
+      opts += `<label class="hr-option-item">
+        <input type="radio" name="replaceSlot" value="${i}" onchange="onReplaceSlotChange(${i})" />
+        <span>範本${i+1}：${escName(_caseTemplates[i].name)}</span>
+      </label>`;
+    }
+    opts += `</div>`;
+    slotArea.innerHTML = opts;
+    nameInput.value = '';
+  }
+  document.getElementById('saveTemplateModal').hidden = false;
+  setTimeout(() => nameInput.focus(), 120);
+}
+
+function onReplaceSlotChange(i) {
+  _saveTemplateTarget = i;
+  // 預填該範本原本的名稱，方便沿用
+  const nameInput = document.getElementById('templateNameInput');
+  if (!nameInput.value.trim() && _caseTemplates[i]) nameInput.value = _caseTemplates[i].name;
+}
+
+function hideSaveTemplateModal() {
+  document.getElementById('saveTemplateModal').hidden = true;
+}
+
+async function confirmSaveTemplate() {
+  const errEl = document.getElementById('templateNameErr');
+  const name  = document.getElementById('templateNameInput').value.trim();
+  errEl.hidden = true;
+
+  if (_saveTemplateTarget === -1) {
+    errEl.textContent = '請選擇要取代的範本'; errEl.hidden = false; return;
+  }
+  if (!name) {
+    errEl.textContent = '請輸入範本名稱'; errEl.hidden = false; return;
+  }
+  if (name.length > 8) {
+    errEl.textContent = '範本名稱請勿超過 8 字'; errEl.hidden = false; return;
+  }
+
+  const content = document.getElementById('caseSummaryText').value;
+  _caseTemplates[_saveTemplateTarget] = { name, content };
+  await persistCaseTemplates();
+  renderCaseTemplateRow();
+  hideSaveTemplateModal();
+  showToast(`✅ 已儲存為「${name}」`);
+}
+
+// ── 通用確認對話框（回傳 Promise<boolean>）──
+function customConfirm(message) {
+  return new Promise(resolve => {
+    const dlg = document.getElementById('confirmDialog');
+    document.getElementById('confirmDialogMsg').textContent = message;
+    const yes = document.getElementById('confirmDialogYes');
+    const no  = document.getElementById('confirmDialogNo');
+    const cleanup = (result) => {
+      dlg.hidden = true;
+      yes.onclick = null;
+      no.onclick  = null;
+      resolve(result);
+    };
+    yes.onclick = () => cleanup(true);
+    no.onclick  = () => cleanup(false);
+    dlg.hidden = false;
+  });
+}
+
 let _draftSaveTimer = null;
 async function autoSaveDraft() {
   if (!S.pendingId) return;
@@ -943,8 +1152,13 @@ async function showCloseCaseModal(id) {
     draft?.case_summary ?? (sub ? buildTemplate(sub) : '');
 
   document.getElementById('phrasePanelContainer').innerHTML = '';
+  document.getElementById('caseTemplateRow').innerHTML = '';
   if (sub?.source) renderPhrasePanel(sub.source);
   document.getElementById('closeCaseModal').hidden = false;
+
+  // 載入並顯示個人案件摘要範本
+  await loadCaseTemplates(sub?.source || '');
+  renderCaseTemplateRow();
 }
 
 function hideCloseCaseModal() {
