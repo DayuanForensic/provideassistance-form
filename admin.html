@@ -50,6 +50,22 @@
     .custom-phrase-input { padding: 5px 9px; border: 1.5px solid var(--border); border-radius: 6px; font-size: .82rem; font-family: inherit; transition: border-color .2s; cursor: pointer; }
     .custom-phrase-input:focus { outline: none; border-color: var(--primary); cursor: text; }
     .custom-phrase-input:hover:not(:focus) { border-color: var(--primary); background: #fafafe; }
+    /* ── 匯出設定 ── */
+    .export-section { padding: 1.4rem 1.6rem 0; }
+    .export-section h3 { font-size: .97rem; font-weight: 600; color: var(--text); margin: 0 0 .85rem; }
+    .export-email-row { display: flex; gap: .6rem; align-items: center; margin-bottom: .6rem; max-width: 480px; }
+    .export-email-row input { flex: 1; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .92rem; font-family: inherit; }
+    .export-email-row input:focus { outline: none; border-color: var(--primary); }
+    .export-hint { font-size: .82rem; color: var(--muted); margin: 0 0 .9rem; }
+    .export-warn-box { background: #fff5f5; border: 1.5px solid #fc8181; border-radius: 8px; padding: .7rem 1rem; margin: .8rem 1.6rem 0; color: #c53030; font-size: .86rem; line-height: 1.6; }
+    .export-log-wrap { margin: 0 1.6rem; overflow-x: auto; }
+    .export-log-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+    .export-log-table th { text-align: left; padding: .5rem .7rem; background: #f8fafc; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 600; white-space: nowrap; }
+    .export-log-table td { padding: .55rem .7rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .export-log-table tr:last-child td { border-bottom: none; }
+    .export-ok  { color: #2f855a; font-weight: 600; }
+    .export-err { color: #c53030; font-weight: 600; }
+    .export-err-msg { color: #c53030; font-size: .78rem; max-width: 200px; word-break: break-all; margin-top: 3px; }
   </style>
 </head>
 <body>
@@ -114,6 +130,12 @@
               onclick="switchView('calendar')">
         <span class="nav-icon">📅</span>
         <span>值班月曆</span>
+      </button>
+      <button class="nav-item" data-view="export"
+              onclick="switchView('export')">
+        <span class="nav-icon">📤</span>
+        <span>匯出設定</span>
+        <span class="nav-badge" id="exportFailBadge" style="display:none;background:#e53e3e">!</span>
       </button>
     </nav>
 
@@ -238,6 +260,37 @@
       </div>
     </div><!-- /view-calendar -->
 
+    <!-- ── 匯出設定 View ── -->
+    <div id="view-export" class="view-panel" hidden>
+      <header class="view-header">
+        <h2>匯出設定</h2>
+      </header>
+
+      <!-- 失敗警告 -->
+      <div id="exportViewWarns"></div>
+
+      <!-- 收件信箱設定 -->
+      <div class="export-section">
+        <h3>📧 收件信箱</h3>
+        <div class="export-email-row">
+          <input type="email" id="exportEmailInput" placeholder="請輸入收件電子郵件" />
+          <button class="btn-primary" onclick="saveEmailSetting()">儲存</button>
+        </div>
+        <p class="export-hint">每月 1 日系統將自動匯出上個月結案紀錄 CSV 並寄送至此信箱。</p>
+        <button class="btn-outline" id="manualExportBtn" onclick="triggerExport()">
+          ▶ 立即手動匯出（上個月）
+        </button>
+      </div>
+
+      <!-- 匯出歷程 -->
+      <div class="export-section" style="margin-top:1.4rem;padding-top:1.4rem;border-top:1px solid var(--border)">
+        <h3>📋 匯出歷程</h3>
+        <div id="exportLogWrap" class="export-log-wrap">
+          <p style="color:var(--muted);font-size:.87rem">載入中…</p>
+        </div>
+      </div>
+    </div><!-- /view-export -->
+
   </div><!-- /main-area -->
 </div><!-- /appShell -->
 
@@ -345,6 +398,7 @@ const S = {
   user:         null,
   submissions:  [],
   caseRecords:  [],
+  exportLogs:   [],
   filtered:     [],
   filter:       'active',
   search:       '',
@@ -420,6 +474,7 @@ function showApp() {
 
   loadSubmissions();
   setupRealtime();
+  checkExportWarnings();
 }
 
 // ════════════════════════════════════════════════════════
@@ -433,10 +488,12 @@ function switchView(view) {
   document.getElementById('view-cases').hidden       = (view !== 'cases');
   document.getElementById('view-roster').hidden      = (view !== 'roster');
   document.getElementById('view-calendar').hidden    = (view !== 'calendar');
+  document.getElementById('view-export').hidden      = (view !== 'export');
 
   if (view === 'cases')    loadCaseRecords();
   if (view === 'roster')   loadRoster();
   if (view === 'calendar') loadCalendar();
+  if (view === 'export')   loadExportView();
 }
 
 // ════════════════════════════════════════════════════════
@@ -1219,6 +1276,132 @@ document.addEventListener('keydown', (e) => {
     closeDetail();
   }
 });
+
+// ════════════════════════════════════════════════════════
+// 匯出設定
+// ════════════════════════════════════════════════════════
+async function loadExportView() {
+  // 載入收件信箱
+  const { data: settings } = await sb.from('email_settings').select('email').eq('id', 1).single();
+  const inp = document.getElementById('exportEmailInput');
+  if (inp && settings?.email) inp.value = settings.email;
+
+  // 載入匯出歷程（最近 24 筆）
+  const { data: logs } = await sb
+    .from('export_logs')
+    .select('*')
+    .order('triggered_at', { ascending: false })
+    .limit(24);
+  S.exportLogs = logs || [];
+  renderExportLogs();
+  renderExportWarnings();
+}
+
+function renderExportLogs() {
+  const wrap = document.getElementById('exportLogWrap');
+  if (!wrap) return;
+  if (!S.exportLogs.length) {
+    wrap.innerHTML = '<p style="color:var(--muted);font-size:.87rem;margin:0">尚無匯出紀錄。</p>';
+    return;
+  }
+  const rows = S.exportLogs.map(l => {
+    const month = (l.export_month || '').slice(0, 7).replace('-', '/');
+    const time  = l.triggered_at
+      ? new Date(l.triggered_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
+      : '–';
+    const ok = l.status === '成功';
+    const errCell = ok ? '' :
+      (l.error_msg ? `<div class="export-err-msg">${esc(l.error_msg)}</div>` : '');
+    const retryBtn = ok ? '' :
+      `<button class="btn-outline" style="font-size:.75rem;padding:2px 8px;margin-top:4px"
+         onclick="triggerExport('${(l.export_month||'').slice(0,7)}', true)">重試</button>`;
+    return `<tr>
+      <td>${month}</td>
+      <td>${time}</td>
+      <td class="${ok ? 'export-ok' : 'export-err'}">${ok ? '✅ 成功' : '❌ 失敗'}</td>
+      <td>${l.rows_exported}</td>
+      <td>${esc(l.recipient_email)}</td>
+      <td>${errCell}${retryBtn}</td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `<table class="export-log-table">
+    <thead><tr>
+      <th>月份</th><th>匯出時間</th><th>狀態</th><th>筆數</th><th>收件信箱</th><th>備註</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function renderExportWarnings() {
+  const wrap = document.getElementById('exportViewWarns');
+  if (!wrap) return;
+  const fails = S.exportLogs.filter(l => l.status === '失敗');
+  if (!fails.length) { wrap.innerHTML = ''; return; }
+  const msgs = fails.slice(0, 5).map(l => {
+    const month = (l.export_month || '').slice(0, 7).replace('-', '/');
+    return `${month} 月份匯出失敗：${esc(l.error_msg || '未知錯誤')}`;
+  }).join('<br>');
+  wrap.innerHTML = `<div class="export-warn-box">⚠️ 下列月份匯出失敗，請確認信箱設定後點選「重試」：<br>${msgs}</div>`;
+}
+
+async function checkExportWarnings() {
+  const { data: logs } = await sb
+    .from('export_logs')
+    .select('id')
+    .eq('status', '失敗')
+    .limit(1);
+  const badge = document.getElementById('exportFailBadge');
+  if (badge) badge.style.display = (logs?.length ? '' : 'none');
+}
+
+async function saveEmailSetting() {
+  const email = document.getElementById('exportEmailInput')?.value.trim() || '';
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('請輸入有效的電子郵件地址', 'error');
+    return;
+  }
+  const { error } = await sb.from('email_settings').upsert({ id: 1, email });
+  if (error) { showToast('儲存失敗：' + error.message, 'error'); return; }
+  showToast('✅ 收件信箱已儲存');
+}
+
+async function triggerExport(month = null, force = false) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { showToast('請先登入', 'error'); return; }
+
+  const btn = document.getElementById('manualExportBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '匯出中…'; }
+
+  try {
+    const body = { manual: true };
+    if (month) body.month = month;
+    if (force) body.force = true;
+
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/monthly-export`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    let result = {};
+    try { result = await resp.json(); } catch {}
+
+    if (resp.ok) {
+      showToast(`✅ 匯出成功，共 ${result.rows ?? 0} 筆`);
+    } else {
+      showToast(`匯出失敗：${result.error || resp.statusText}`, 'error');
+    }
+  } catch (err) {
+    showToast(`匯出失敗：${err.message}`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '▶ 立即手動匯出（上個月）'; }
+    loadExportView();
+    checkExportWarnings();
+  }
+}
 
 initAuth();
 </script>
