@@ -65,7 +65,8 @@
     .export-log-table tr:last-child td { border-bottom: none; }
     .export-ok  { color: #2f855a; font-weight: 600; }
     .export-err { color: #c53030; font-weight: 600; }
-    .export-err-msg { color: #c53030; font-size: .78rem; max-width: 200px; word-break: break-all; margin-top: 3px; }
+    .export-err-msg  { color: #c53030; font-size: .78rem; max-width: 200px; word-break: break-all; margin-top: 3px; }
+    .export-warn-msg { color: #b7791f; font-size: .78rem; max-width: 200px; word-break: break-all; margin-top: 3px; }
   </style>
 </head>
 <body>
@@ -1313,8 +1314,9 @@ function renderExportLogs() {
       ? new Date(l.triggered_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
       : '–';
     const ok = l.status === '成功';
-    const errCell = ok ? '' :
-      (l.error_msg ? `<div class="export-err-msg">${esc(l.error_msg)}</div>` : '');
+    const errCell = l.error_msg
+      ? `<div class="${ok ? 'export-warn-msg' : 'export-err-msg'}">${esc(l.error_msg)}</div>`
+      : '';
     const retryBtn = ok ? '' :
       `<button class="btn-outline" style="font-size:.75rem;padding:2px 8px;margin-top:4px"
          onclick="triggerExport('${(l.export_month||'').slice(0,7)}', true)">重試</button>`;
