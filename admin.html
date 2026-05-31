@@ -1230,7 +1230,10 @@ async function saveCalendar() {
 // ════════════════════════════════════════════════════════
 // REALTIME
 // ════════════════════════════════════════════════════════
+let _realtimeReady = false;
 function setupRealtime() {
+  if (_realtimeReady) return;
+  _realtimeReady = true;
   sb.channel('rt-admin')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' },
       () => loadSubmissions()
