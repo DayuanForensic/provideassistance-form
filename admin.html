@@ -476,6 +476,7 @@ function showApp() {
   loadSubmissions();
   setupRealtime();
   checkExportWarnings();
+  loadCustomPhrases();
 }
 
 // ════════════════════════════════════════════════════════
@@ -833,15 +834,35 @@ function handlePhraseClick(input) {
   }
 }
 
+let _customPhrases   = Array(10).fill('');
+let _phraseSaveTimer = null;
+
+async function loadCustomPhrases() {
+  const { data } = await sb.from('user_phrases')
+    .select('phrases')
+    .eq('user_email', S.user.email)
+    .maybeSingle();
+  const arr = data?.phrases;
+  _customPhrases = (Array.isArray(arr) && arr.length === 10) ? arr : Array(10).fill('');
+}
+
 function saveCustomPhrases() {
   const arr = [];
   for (let i = 0; i < 10; i++) arr.push(document.getElementById('cp'+i)?.value || '');
-  localStorage.setItem('custom_phrases', JSON.stringify(arr));
+  _customPhrases = arr;
+  clearTimeout(_phraseSaveTimer);
+  _phraseSaveTimer = setTimeout(async () => {
+    await sb.from('user_phrases').upsert({
+      user_email:  S.user.email,
+      phrases:     arr,
+      updated_at:  new Date().toISOString(),
+    });
+  }, 800);
 }
 
 function renderPhrasePanel(source) {
-  const opts = CASE_OPTIONS[source] || [];
-  const saved = JSON.parse(localStorage.getItem('custom_phrases') || JSON.stringify(Array(10).fill('')));
+  const opts  = CASE_OPTIONS[source] || [];
+  const saved = _customPhrases;
   const esc = t => t.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 
   let h = `<div class="phrase-section">`;
