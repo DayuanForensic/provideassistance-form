@@ -735,8 +735,7 @@ document.getElementById('surveyForm').addEventListener('submit', async (e) => {
       const msgEl = document.getElementById('dutyOfficerMsg');
       if (duty?.name && duty?.phone) {
         msgEl.innerHTML =
-          `您的申請已成功送出，` +
-          `<span class="duty-name">請注意本問卷僅供鑑識人員快速釐清現場狀況，不會通知鑑識人員接案</span>，` +
+          `<span class="duty-name">請注意本問卷不會通知鑑識人員接案，僅供鑑識人員快速釐清現場狀況</span>，` +
           `今日鑑識值班人員為 <span class="duty-name">${duty.name}</span>` +
           `，請務必撥打聯繫電話 <span class="duty-phone">${duty.phone}</span> 或偵查隊警用 3310。`;
       } else {
