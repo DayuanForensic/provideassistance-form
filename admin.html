@@ -324,17 +324,17 @@
     <div class="modal-body">
       <div class="field-group">
         <label>處理人員姓名 <span class="required">*</span></label>
-        <input type="text" id="handlerName" placeholder="請輸入您的姓名" />
+        <input type="text" id="handlerName" placeholder="請輸入您的姓名" oninput="autoSaveDraft()" />
       </div>
       <div class="field-group">
         <label>處理結果 <span class="required">*</span></label>
         <div style="display:flex;gap:10px;margin-top:.35rem;">
-          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;padding:.4rem .9rem;border:1.5px solid var(--border);border-radius:8px;white-space:nowrap;flex:1;justify-content:center;">
-            <input type="radio" name="handlingResultRadio" id="hrGo"    value="前往現場勘察" style="accent-color:var(--primary);" onchange="syncHandlingResult()" />
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;padding:.4rem .9rem;border:1.5px solid var(--border);border-radius:8px;white-space:nowrap;">
+            <input type="radio" name="handlingResultRadio" id="hrGo"    value="前往現場勘察" style="accent-color:var(--primary);" onchange="syncHandlingResult();autoSaveDraft()" />
             <span style="font-size:.92rem;">前往現場勘察</span>
           </label>
-          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;padding:.4rem .9rem;border:1.5px solid var(--border);border-radius:8px;white-space:nowrap;flex:1;justify-content:center;">
-            <input type="radio" name="handlingResultRadio" id="hrDefer" value="暫緩現場勘察" style="accent-color:var(--primary);" onchange="syncHandlingResult()" />
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;padding:.4rem .9rem;border:1.5px solid var(--border);border-radius:8px;white-space:nowrap;">
+            <input type="radio" name="handlingResultRadio" id="hrDefer" value="暫緩現場勘察" style="accent-color:var(--primary);" onchange="syncHandlingResult();autoSaveDraft()" />
             <span style="font-size:.92rem;">暫緩現場勘察</span>
           </label>
         </div>
@@ -343,7 +343,8 @@
       <div class="field-group">
         <label>案件摘要 <span class="required">*</span></label>
         <textarea id="caseSummaryText" rows="18"
-          placeholder="點擊下方語句可帶入游標位置…" style="font-size:.85rem;line-height:1.7;font-family:inherit;"></textarea>
+          placeholder="點擊下方語句可帶入游標位置…" style="font-size:.85rem;line-height:1.7;font-family:inherit;"
+          oninput="autoSaveDraft()"></textarea>
         <!-- 快速語句面板 -->
         <div id="phrasePanelContainer"></div>
       </div>
@@ -882,14 +883,50 @@ function renderPhrasePanel(source) {
   document.getElementById('phrasePanelContainer').innerHTML = h;
 }
 
+let _draftSaveTimer = null;
+async function autoSaveDraft() {
+  if (!S.pendingId) return;
+  const sub = S.submissions.find(s => s.id === S.pendingId);
+  if (!sub) return;
+
+  const handlerName    = document.getElementById('handlerName').value;
+  const handlingResult = document.getElementById('handlingResult').value;
+  const caseSummary    = document.getElementById('caseSummaryText').value;
+  const hasInput       = handlerName.trim() || handlingResult || caseSummary.trim();
+
+  // 有任何輸入且狀態為「新進」→ 自動改為「處理中」
+  if (hasInput && sub.status === '新進') {
+    await sb.from('submissions').update({ status: '處理中' }).eq('id', S.pendingId);
+    sub.status = '處理中';
+    updateCounts();
+    applyFilter();
+  }
+
+  // 防抖 800ms 後儲存草稿
+  clearTimeout(_draftSaveTimer);
+  _draftSaveTimer = setTimeout(async () => {
+    await sb.from('submissions').update({
+      case_draft: { handler_name: handlerName, handling_result: handlingResult, case_summary: caseSummary },
+    }).eq('id', S.pendingId);
+    sub.case_draft = { handler_name: handlerName, handling_result: handlingResult, case_summary: caseSummary };
+  }, 800);
+}
+
 function showCloseCaseModal(id) {
   closeAllModals();
   S.pendingId = id;
   const sub = S.submissions.find(s => s.id === id);
-  document.getElementById('handlerName').value    = '';
-  document.getElementById('handlingResult').value = '';
-  document.querySelectorAll('[name="handlingResultRadio"]').forEach(r => r.checked = false);
-  document.getElementById('caseSummaryText').value = sub ? buildTemplate(sub) : '';
+
+  // 有草稿則還原，否則用模板
+  const draft = sub?.case_draft;
+  document.getElementById('handlerName').value    = draft?.handler_name    || '';
+  document.getElementById('handlingResult').value = draft?.handling_result || '';
+  document.querySelectorAll('[name="handlingResultRadio"]').forEach(r => {
+    r.checked = draft?.handling_result ? r.value === draft.handling_result : false;
+  });
+  document.getElementById('caseSummaryText').value =
+    draft?.case_summary ?? (sub ? buildTemplate(sub) : '');
+
   document.getElementById('phrasePanelContainer').innerHTML = '';
   if (sub?.source) renderPhrasePanel(sub.source);
   document.getElementById('closeCaseModal').hidden = false;
@@ -941,7 +978,11 @@ async function confirmCloseCase() {
   }
 
   const idx = S.submissions.findIndex(s => s.id === S.pendingId);
-  if (idx !== -1) S.submissions[idx].status = '已結案';
+  if (idx !== -1) {
+    S.submissions[idx].status     = '已結案';
+    S.submissions[idx].case_draft = null;
+  }
+  await sb.from('submissions').update({ case_draft: null }).eq('id', S.pendingId);
 
   hideCloseCaseModal();
   closeDetail();
