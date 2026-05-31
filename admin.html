@@ -50,6 +50,13 @@
     .custom-phrase-input { padding: 5px 9px; border: 1.5px solid var(--border); border-radius: 6px; font-size: .82rem; font-family: inherit; transition: border-color .2s; cursor: pointer; }
     .custom-phrase-input:focus { outline: none; border-color: var(--primary); cursor: text; }
     .custom-phrase-input:hover:not(:focus) { border-color: var(--primary); background: #fafafe; }
+    /* ── 處理結果選項（比照問卷端 option-item） ── */
+    .hr-option-group { display: flex; flex-direction: column; gap: .5rem; margin-top: .35rem; }
+    .hr-option-item { display: flex; align-items: center; gap: .65rem; padding: .65rem .9rem; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; transition: border-color .2s, background .2s; user-select: none; }
+    .hr-option-item:hover { border-color: var(--primary); background: #f5f3ff; }
+    .hr-option-item input[type="radio"] { width: 16px; height: 16px; accent-color: var(--primary); flex-shrink: 0; margin: 0; }
+    .hr-option-item span { font-size: .92rem; }
+    .hr-option-item.selected { border-color: var(--primary); background: #ede9fe; }
     /* ── 匯出設定 ── */
     .export-section { padding: 1.4rem 1.6rem 0; }
     .export-section h3 { font-size: .97rem; font-weight: 600; color: var(--text); margin: 0 0 .85rem; }
@@ -328,14 +335,14 @@
       </div>
       <div class="field-group">
         <label>處理結果 <span class="required">*</span></label>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:.35rem;">
-          <label style="display:block;cursor:pointer;padding:.45rem .9rem;border:1.5px solid var(--border);border-radius:8px;line-height:1.6;">
-            <input type="radio" name="handlingResultRadio" id="hrGo"    value="前往現場勘察" style="accent-color:var(--primary);vertical-align:middle;margin-right:.35rem;" onchange="syncHandlingResult();autoSaveDraft()" />
-            <span style="font-size:.92rem;vertical-align:middle;">前往現場勘察</span>
+        <div class="hr-option-group">
+          <label class="hr-option-item">
+            <input type="radio" name="handlingResultRadio" id="hrGo"    value="前往現場勘察" onchange="syncHandlingResult();autoSaveDraft()" />
+            <span>前往現場勘察</span>
           </label>
-          <label style="display:block;cursor:pointer;padding:.45rem .9rem;border:1.5px solid var(--border);border-radius:8px;line-height:1.6;">
-            <input type="radio" name="handlingResultRadio" id="hrDefer" value="暫緩現場勘察" style="accent-color:var(--primary);vertical-align:middle;margin-right:.35rem;" onchange="syncHandlingResult();autoSaveDraft()" />
-            <span style="font-size:.92rem;vertical-align:middle;">暫緩現場勘察</span>
+          <label class="hr-option-item">
+            <input type="radio" name="handlingResultRadio" id="hrDefer" value="暫緩現場勘察" onchange="syncHandlingResult();autoSaveDraft()" />
+            <span>暫緩現場勘察</span>
           </label>
         </div>
         <input type="hidden" id="handlingResult" value="" />
