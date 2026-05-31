@@ -135,7 +135,7 @@
       <button class="nav-item" data-view="export"
               onclick="switchView('export')">
         <span class="nav-icon">📤</span>
-        <span>匯出設定</span>
+        <span>系統定期清理</span>
         <span class="nav-badge" id="exportFailBadge" style="display:none;background:#e53e3e">!</span>
       </button>
     </nav>
@@ -264,7 +264,7 @@
     <!-- ── 匯出設定 View ── -->
     <div id="view-export" class="view-panel" hidden>
       <header class="view-header">
-        <h2>匯出設定</h2>
+        <h2>系統定期清理</h2>
       </header>
 
       <!-- 失敗警告 -->
@@ -277,7 +277,7 @@
           <input type="email" id="exportEmailInput" placeholder="請輸入收件電子郵件" />
           <button class="btn-primary" onclick="saveEmailSetting()">儲存</button>
         </div>
-        <p class="export-hint">每月 1 日系統將自動匯出上個月結案紀錄 CSV 並寄送至此信箱。</p>
+        <p class="export-hint">每月 1 日系統將自動匯出上個月結案紀錄 CSV 並寄送至此信箱，並於次月定期刪除已結案之紀錄。<br>例：115年4月份結案紀錄，於115年5月1日自動寄出，並於115年6月1日系統自動執行刪除。</p>
         <button class="btn-outline" id="manualExportBtn" onclick="triggerExport()">
           ▶ 立即手動匯出（上個月）
         </button>
