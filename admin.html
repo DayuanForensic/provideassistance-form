@@ -328,7 +328,7 @@
       </div>
       <div class="field-group">
         <label>處理結果 <span class="required">*</span></label>
-        <div style="display:flex;gap:10px;margin-top:.35rem;">
+        <div style="display:flex;gap:10px;margin-top:.35rem;flex-wrap:wrap;">
           <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;padding:.4rem .9rem;border:1.5px solid var(--border);border-radius:8px;white-space:nowrap;">
             <input type="radio" name="handlingResultRadio" id="hrGo"    value="前往現場勘察" style="accent-color:var(--primary);" onchange="syncHandlingResult();autoSaveDraft()" />
             <span style="font-size:.92rem;">前往現場勘察</span>
@@ -815,6 +815,7 @@ function insertPhrase(text) {
   ta.value = v.slice(0, s) + text + v.slice(e);
   ta.selectionStart = ta.selectionEnd = s + text.length;
   ta.focus();
+  autoSaveDraft();
 }
 
 let _phraseClickTimer = null;
@@ -912,10 +913,17 @@ async function autoSaveDraft() {
   }, 800);
 }
 
-function showCloseCaseModal(id) {
+async function showCloseCaseModal(id) {
   closeAllModals();
   S.pendingId = id;
-  const sub = S.submissions.find(s => s.id === id);
+
+  // 每次開視窗都從 Supabase 取最新資料，確保跨瀏覽器草稿同步
+  const { data: freshSub } = await sb.from('submissions').select('*').eq('id', id).maybeSingle();
+  const sub = freshSub || S.submissions.find(s => s.id === id);
+  if (freshSub) {
+    const idx = S.submissions.findIndex(s => s.id === id);
+    if (idx !== -1) S.submissions[idx] = freshSub;
+  }
 
   // 有草稿則還原，否則用模板
   const draft = sub?.case_draft;
