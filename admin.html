@@ -68,7 +68,6 @@
     .export-err-msg  { color: #c53030; font-size: .78rem; max-width: 200px; word-break: break-all; margin-top: 3px; }
     .export-warn-msg { color: #b7791f; font-size: .78rem; max-width: 200px; word-break: break-all; margin-top: 3px; }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -96,59 +95,6 @@
       <div id="loginError" class="login-error" hidden></div>
       <button type="submit" class="btn-primary full-width" id="loginBtn">登入</button>
     </form>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════════
-     MFA 設定畫面（首次登入，無 TOTP 時顯示）
-══════════════════════════════════════════════ -->
-<div id="mfaEnrollScreen" class="mfa-screen" style="display:none">
-  <div class="login-card">
-    <div class="login-logo">
-      <span class="login-icon">🔐</span>
-      <h1>設定二步驟驗證</h1>
-      <p>首次登入需完成設定</p>
-    </div>
-    <p style="font-size:.84rem;color:#555;text-align:center;margin-bottom:.8rem;line-height:1.65">
-      請使用 <strong>Google Authenticator</strong> 或 <strong>Authy</strong><br>
-      掃描以下 QR Code，完成後輸入驗證碼
-    </p>
-    <div style="text-align:center;margin:.8rem 0">
-      <canvas id="mfaQRCanvas"></canvas>
-    </div>
-    <p style="font-size:.76rem;color:#888;text-align:center;margin-bottom:.3rem">無法掃描？手動輸入密鑰：</p>
-    <div class="mfa-secret-box" id="mfaSecret"></div>
-    <div class="field-group">
-      <label>輸入驗證器顯示的 6 位數字</label>
-      <input type="text" id="mfaEnrollCode" maxlength="6" placeholder="000000"
-             inputmode="numeric" autocomplete="one-time-code"
-             onkeydown="if(event.key==='Enter')verifyMFAEnroll()" />
-    </div>
-    <div id="mfaEnrollErr" class="login-error" hidden></div>
-    <button class="btn-primary full-width" onclick="verifyMFAEnroll()">完成設定 →</button>
-    <button class="btn-outline full-width" style="margin-top:.6rem" onclick="handleLogout()">取消登入</button>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════════
-     MFA 驗證畫面（每次登入輸入驗證碼）
-══════════════════════════════════════════════ -->
-<div id="mfaChallengeScreen" class="mfa-screen" style="display:none">
-  <div class="login-card">
-    <div class="login-logo">
-      <span class="login-icon">🔑</span>
-      <h1>二步驟驗證</h1>
-      <p>請開啟驗證器 App 取得代碼</p>
-    </div>
-    <div class="field-group">
-      <label>6 位數驗證碼</label>
-      <input type="text" id="mfaChallengeCode" maxlength="6" placeholder="000000"
-             inputmode="numeric" autocomplete="one-time-code"
-             onkeydown="if(event.key==='Enter')verifyMFAChallenge()" />
-    </div>
-    <div id="mfaChallengeErr" class="login-error" hidden></div>
-    <button class="btn-primary full-width" onclick="verifyMFAChallenge()">驗證 →</button>
-    <button class="btn-outline full-width" style="margin-top:.6rem" onclick="handleLogout()">返回重新登入</button>
   </div>
 </div>
 
@@ -224,7 +170,7 @@
           <button class="tab"        data-f="all"      onclick="setFilter('all')">全部</button>
         </div>
         <input type="search" id="searchInput" class="search-input"
-               placeholder="搜尋姓名或 Email…" />
+               placeholder="搜尋姓名或案件類別…" />
       </div>
 
       <div class="table-wrap">
@@ -464,12 +410,6 @@ const S = {
 // ════════════════════════════════════════════════════════
 // AUTH
 // ════════════════════════════════════════════════════════
-// MFA 狀態
-let _mfaFactorId    = null;
-let _mfaChallengeId = null;
-let _mfaEnrollId    = null;
-let _appReady       = false;
-
 async function initAuth() {
   showLoginPage();
 
@@ -477,137 +417,20 @@ async function initAuth() {
 
   if (session?.user?.email) {
     S.user = session.user;
-    await checkMFAState();
+    showApp();
   } else if (session) {
     await sb.auth.signOut();
   }
 
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session?.user?.email && !_appReady) {
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session?.user?.email) {
       S.user = session.user;
-      await checkMFAState();
+      showApp();
     } else if (event === 'SIGNED_OUT') {
-      S.user   = null;
-      _appReady = false;
+      S.user = null;
       showLoginPage();
     }
   });
-}
-
-// ── MFA 核心流程 ──────────────────────────────────────────
-async function checkMFAState() {
-  const { data: { currentLevel, nextLevel } } =
-    await sb.auth.mfa.getAuthenticatorAssuranceLevel();
-
-  if (currentLevel === nextLevel) {
-    _appReady = true;
-    showApp();
-    return;
-  }
-
-  const { data: factors } = await sb.auth.mfa.listFactors();
-  const totp = factors?.totp || [];
-
-  if (totp.length === 0) {
-    await startMFAEnroll();
-  } else {
-    _mfaFactorId = totp[0].id;
-    await startMFAChallenge();
-  }
-}
-
-async function startMFAEnroll() {
-  const { data, error } = await sb.auth.mfa.enroll({
-    factorType: 'totp',
-    issuer: '問卷後台',
-    friendlyName: 'Admin',
-  });
-  if (error) {
-    alert('MFA 設定失敗：' + error.message);
-    await sb.auth.signOut();
-    return;
-  }
-  _mfaEnrollId = data.id;
-
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('mfaEnrollScreen').style.display = 'flex';
-
-  QRCode.toCanvas(
-    document.getElementById('mfaQRCanvas'),
-    data.totp.uri,
-    { width: 200, margin: 1 },
-    err => { if (err) console.error(err); }
-  );
-  document.getElementById('mfaSecret').textContent = data.totp.secret;
-  setTimeout(() => document.getElementById('mfaEnrollCode').focus(), 120);
-}
-
-async function verifyMFAEnroll() {
-  const code  = document.getElementById('mfaEnrollCode').value.replace(/\D/g, '');
-  const errEl = document.getElementById('mfaEnrollErr');
-  errEl.hidden = true;
-
-  if (code.length !== 6) {
-    errEl.textContent = '請輸入 6 位數字'; errEl.hidden = false; return;
-  }
-
-  const { data: ch, error: chErr } = await sb.auth.mfa.challenge({ factorId: _mfaEnrollId });
-  if (chErr) { errEl.textContent = chErr.message; errEl.hidden = false; return; }
-
-  const { error } = await sb.auth.mfa.verify({
-    factorId: _mfaEnrollId, challengeId: ch.id, code,
-  });
-
-  if (error) {
-    errEl.textContent = '驗證碼錯誤，請確認驗證器時間後重試';
-    errEl.hidden = false;
-    document.getElementById('mfaEnrollCode').value = '';
-    return;
-  }
-
-  document.getElementById('mfaEnrollScreen').style.display = 'none';
-  _appReady = true;
-  showApp();
-}
-
-async function startMFAChallenge() {
-  const { data, error } = await sb.auth.mfa.challenge({ factorId: _mfaFactorId });
-  if (error) {
-    alert('MFA 挑戰失敗：' + error.message);
-    await sb.auth.signOut();
-    return;
-  }
-  _mfaChallengeId = data.id;
-
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('mfaChallengeScreen').style.display = 'flex';
-  setTimeout(() => document.getElementById('mfaChallengeCode').focus(), 120);
-}
-
-async function verifyMFAChallenge() {
-  const code  = document.getElementById('mfaChallengeCode').value.replace(/\D/g, '');
-  const errEl = document.getElementById('mfaChallengeErr');
-  errEl.hidden = true;
-
-  if (code.length !== 6) {
-    errEl.textContent = '請輸入 6 位數字'; errEl.hidden = false; return;
-  }
-
-  const { error } = await sb.auth.mfa.verify({
-    factorId: _mfaFactorId, challengeId: _mfaChallengeId, code,
-  });
-
-  if (error) {
-    errEl.textContent = '驗證碼錯誤或已過期，請重新輸入';
-    errEl.hidden = false;
-    document.getElementById('mfaChallengeCode').value = '';
-    await startMFAChallenge();   // 取得新的 challenge
-    return;
-  }
-
-  document.getElementById('mfaChallengeScreen').style.display = 'none';
-  _appReady = true;
-  showApp();
 }
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -639,8 +462,6 @@ async function handleLogout() {
 
 function showLoginPage() {
   document.getElementById('loginScreen').style.display = '';
-  document.getElementById('mfaEnrollScreen').style.display    = 'none';
-  document.getElementById('mfaChallengeScreen').style.display = 'none';
   document.getElementById('appShell').hidden = true;
 }
 
@@ -738,8 +559,8 @@ function applyFilter() {
 
   if (S.search) {
     list = list.filter(s =>
-      (s.name  || '').toLowerCase().includes(S.search) ||
-      (s.email || '').toLowerCase().includes(S.search)
+      (s.name   || '').toLowerCase().includes(S.search) ||
+      (s.source || '').toLowerCase().includes(S.search)
     );
   }
 
