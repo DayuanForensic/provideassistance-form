@@ -1303,7 +1303,7 @@ function applySummaryToggle() {
   document.getElementById('btnSaveTemplate').hidden  = skip;
   if (skip) document.getElementById('toolPanel').hidden = true;
   const btn = document.getElementById('toggleSummaryBtn');
-  btn.textContent = skip ? '開啟摘要' : '關閉摘要';
+  btn.textContent = skip ? '開啟案件摘要編輯' : '關閉摘要';
   btn.style.background    = skip ? 'var(--danger)' : '';
   btn.style.color         = skip ? '#fff' : '';
 }
@@ -1357,10 +1357,16 @@ async function showCloseCaseModal(id) {
   document.querySelectorAll('[name="handlingResultRadio"]').forEach(r => {
     r.checked = draft?.handling_result ? r.value === draft.handling_result : false;
   });
-  _summarySkipped = draft?.no_summary || false;
-  document.getElementById('caseSummaryText').value = _summarySkipped
-    ? ''
-    : (draft?.case_summary ?? (sub ? buildTemplate(sub) : ''));
+  // 預設關閉摘要；若草稿已有明確設定則沿用，舊草稿若已寫過摘要則自動開啟
+  const realSummary = (draft?.case_summary && draft.case_summary !== '本案無須回報案件摘要')
+    ? draft.case_summary : null;
+  if (draft && typeof draft.no_summary === 'boolean') {
+    _summarySkipped = draft.no_summary;
+  } else {
+    _summarySkipped = !realSummary;   // 有寫過摘要→開啟；否則預設關閉
+  }
+  // textarea 一律先帶入草稿或模板內容，使用者點「開啟案件摘要編輯」時即可看到
+  document.getElementById('caseSummaryText').value = realSummary ?? (sub ? buildTemplate(sub) : '');
   applySummaryToggle();
 
   _currentSource = sub?.source || '';
