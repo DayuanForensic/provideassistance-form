@@ -1198,7 +1198,10 @@ async function showCloseCaseModal(id) {
 
   // 有草稿則還原，否則用模板
   const draft = sub?.case_draft;
-  document.getElementById('handlerName').value    = draft?.handler_name    || '';
+  // 處理人員姓名：草稿優先；若空白則帶入該填表日對應的值班番號人員（可自行修改）
+  let handlerVal = draft?.handler_name || '';
+  if (!handlerVal) handlerVal = await getDutyOfficerName(sub?.submitted_at);
+  document.getElementById('handlerName').value    = handlerVal;
   document.getElementById('handlingResult').value = draft?.handling_result || '';
   document.querySelectorAll('[name="handlingResultRadio"]').forEach(r => {
     r.checked = draft?.handling_result ? r.value === draft.handling_result : false;
@@ -1405,6 +1408,38 @@ function exportCSV() {
   a.click();
   URL.revokeObjectURL(url);
   showToast('✅ CSV 已匯出');
+}
+
+// ════════════════════════════════════════════════════════
+// 值班番號查詢（依填表時間推算當班人員）
+// 班次規則：每個番號值班時間為「當日 09:00 至隔日 09:00」
+// 因此填表時間若在早上 9 點前，當班日要往前推一天。
+// ════════════════════════════════════════════════════════
+function dutyDateForTimestamp(submittedAt) {
+  if (!submittedAt) return '';
+  const tz = 'Asia/Taipei';
+  const dt = new Date(submittedAt);
+  // 台北時區的日期（YYYY-MM-DD）與小時（0–23）
+  const dateStr = dt.toLocaleDateString('sv-SE', { timeZone: tz });
+  const hour = parseInt(
+    new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: '2-digit', hourCycle: 'h23' }).format(dt),
+    10
+  );
+  let [y, m, d] = dateStr.split('-').map(Number);
+  let day = new Date(Date.UTC(y, m - 1, d));
+  if (hour < 9) day = new Date(day.getTime() - 86400000);  // 9 點前算前一天的班
+  return day.toISOString().slice(0, 10);
+}
+
+async function getDutyOfficerName(submittedAt) {
+  const dutyDate = dutyDateForTimestamp(submittedAt);
+  if (!dutyDate) return '';
+  const { data: cal } = await sb
+    .from('shift_calendar').select('shift_number').eq('date', dutyDate).maybeSingle();
+  if (!cal) return '';
+  const { data: roster } = await sb
+    .from('duty_roster').select('name').eq('shift_number', cal.shift_number).maybeSingle();
+  return roster?.name || '';
 }
 
 // ════════════════════════════════════════════════════════
