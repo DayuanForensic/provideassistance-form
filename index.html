@@ -446,7 +446,16 @@
 <script>
 // ── 查詢今日值班人員 ──
 async function getTodayDutyOfficer() {
-  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
+  const tz  = 'Asia/Taipei';
+  const now  = new Date();
+  const dateStr = now.toLocaleDateString('sv-SE', { timeZone: tz });
+  const hour = parseInt(
+    new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: '2-digit', hourCycle: 'h23' }).format(now), 10
+  );
+  let [y, m, d] = dateStr.split('-').map(Number);
+  let day = new Date(Date.UTC(y, m - 1, d));
+  if (hour < 9) day = new Date(day.getTime() - 86400000);
+  const today = day.toISOString().slice(0, 10);
   const { data: cal } = await _sb
     .from('shift_calendar').select('shift_number').eq('date', today).maybeSingle();
   if (!cal) return null;
