@@ -834,7 +834,7 @@ function buildTemplate(sub) {
   const victimParts = [gender, birth, nation, suspect ? `涉嫌人：${suspect}` : ''].filter(Boolean);
   const victimLine  = victimParts.join('，') || '（請填入）';
 
-  const head = `案由：OO所轄內民眾疑似${src}現場勘察\n\n二、勘察時間：115年　月　日　時　分\n\n三、勘察地點：${sub.location || '（請填入）'}\n\n四、案情摘要：\n`;
+  const head = `一、案由：OO所轄內民眾疑似${src}現場勘察\n\n二、勘察時間：115年　月　日　時　分\n\n三、勘察地點：${sub.location || '（請填入）'}\n\n四、案情摘要：\n`;
 
   if (src === '死亡案') {
     return head +
