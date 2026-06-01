@@ -373,14 +373,24 @@
       </div>
       <div class="field-group">
         <div class="summary-head">
-          <label>案件摘要 <span class="required">*</span></label>
-          <button type="button" class="btn-save-template" onclick="openSaveTemplateModal()">💾 存為範本</button>
+          <label>案件摘要 <span class="required" id="summaryRequired">*</span></label>
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <button type="button" id="toggleSummaryBtn" class="btn-outline"
+              style="font-size:.78rem;padding:.28rem .7rem;line-height:1.4"
+              onclick="toggleSummary()">關閉摘要</button>
+            <button type="button" class="btn-save-template" id="btnSaveTemplate" onclick="openSaveTemplateModal()">💾 存為範本</button>
+          </div>
+        </div>
+        <div id="noSummaryNotice" hidden
+          style="text-align:center;padding:1.4rem;color:var(--muted);font-size:.88rem;
+                 border:1.5px dashed var(--border);border-radius:8px;margin-bottom:.5rem;">
+          本案無須回報案件摘要
         </div>
         <textarea id="caseSummaryText" rows="14"
           placeholder="請輸入或編輯現場摘要內容…" style="font-size:.85rem;line-height:1.7;font-family:inherit;"
           oninput="autoSaveDraft()"></textarea>
         <!-- 工具列：點擊才在正下方展開對應工具 -->
-        <div class="tool-tabs">
+        <div class="tool-tabs" id="summaryToolTabs">
           <button type="button" class="tool-tab" data-tab="template" onclick="toggleToolTab('template')">📄 範本</button>
           <button type="button" class="tool-tab" data-tab="options"  onclick="toggleToolTab('options')">⚡ 選項</button>
           <button type="button" class="tool-tab" data-tab="custom"   onclick="toggleToolTab('custom')">✏️ 自訂</button>
@@ -1274,7 +1284,29 @@ function customConfirm(message) {
   });
 }
 
-let _draftSaveTimer = null;
+let _draftSaveTimer  = null;
+let _summarySkipped  = false;
+
+function toggleSummary() {
+  _summarySkipped = !_summarySkipped;
+  applySummaryToggle();
+  autoSaveDraft();
+}
+
+function applySummaryToggle() {
+  const skip = _summarySkipped;
+  document.getElementById('noSummaryNotice').hidden  = !skip;
+  document.getElementById('caseSummaryText').hidden  = skip;
+  document.getElementById('summaryToolTabs').hidden  = skip;
+  document.getElementById('summaryRequired').hidden  = skip;
+  document.getElementById('btnSaveTemplate').hidden  = skip;
+  if (skip) document.getElementById('toolPanel').hidden = true;
+  const btn = document.getElementById('toggleSummaryBtn');
+  btn.textContent = skip ? '開啟摘要' : '關閉摘要';
+  btn.style.background    = skip ? 'var(--primary)' : '';
+  btn.style.color         = skip ? '#fff' : '';
+  btn.style.borderColor   = skip ? 'var(--primary)' : '';
+}
 async function autoSaveDraft() {
   if (!S.pendingId) return;
   const sub = S.submissions.find(s => s.id === S.pendingId);
@@ -1282,7 +1314,7 @@ async function autoSaveDraft() {
 
   const handlerName    = document.getElementById('handlerName').value;
   const handlingResult = document.getElementById('handlingResult').value;
-  const caseSummary    = document.getElementById('caseSummaryText').value;
+  const caseSummary    = _summarySkipped ? '本案無須回報案件摘要' : document.getElementById('caseSummaryText').value;
   const hasInput       = handlerName.trim() || handlingResult || caseSummary.trim();
 
   // 有任何輸入且狀態為「新進」→ 自動改為「處理中」
@@ -1297,9 +1329,9 @@ async function autoSaveDraft() {
   clearTimeout(_draftSaveTimer);
   _draftSaveTimer = setTimeout(async () => {
     await sb.from('submissions').update({
-      case_draft: { handler_name: handlerName, handling_result: handlingResult, case_summary: caseSummary },
+      case_draft: { handler_name: handlerName, handling_result: handlingResult, case_summary: caseSummary, no_summary: _summarySkipped },
     }).eq('id', S.pendingId);
-    sub.case_draft = { handler_name: handlerName, handling_result: handlingResult, case_summary: caseSummary };
+    sub.case_draft = { handler_name: handlerName, handling_result: handlingResult, case_summary: caseSummary, no_summary: _summarySkipped };
   }, 800);
 }
 
@@ -1325,8 +1357,11 @@ async function showCloseCaseModal(id) {
   document.querySelectorAll('[name="handlingResultRadio"]').forEach(r => {
     r.checked = draft?.handling_result ? r.value === draft.handling_result : false;
   });
-  document.getElementById('caseSummaryText').value =
-    draft?.case_summary ?? (sub ? buildTemplate(sub) : '');
+  _summarySkipped = draft?.no_summary || false;
+  document.getElementById('caseSummaryText').value = _summarySkipped
+    ? ''
+    : (draft?.case_summary ?? (sub ? buildTemplate(sub) : ''));
+  applySummaryToggle();
 
   _currentSource = sub?.source || '';
   await loadCaseTemplates(_currentSource);
@@ -1342,9 +1377,11 @@ function hideCloseCaseModal() {
 async function confirmCloseCase() {
   const handlerName     = document.getElementById('handlerName').value.trim();
   const handlingResult  = document.getElementById('handlingResult').value.trim();
-  const caseSummary     = document.getElementById('caseSummaryText').value.trim();
+  const caseSummary     = _summarySkipped
+    ? '本案無須回報案件摘要'
+    : document.getElementById('caseSummaryText').value.trim();
 
-  if (!handlerName || !handlingResult || !caseSummary) {
+  if (!handlerName || !handlingResult || (!_summarySkipped && !caseSummary)) {
     showToast('❌ 請填寫所有必填欄位', 'error');
     return;
   }
