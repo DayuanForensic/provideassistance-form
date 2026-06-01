@@ -58,10 +58,8 @@
     .hr-option-item span { font-size: .92rem; }
     .hr-option-item.selected { border-color: var(--primary); background: #ede9fe; }
     /* ── 個人案件摘要範本 ── */
-    .summary-toolbar { display: flex; justify-content: flex-end; margin-top: .45rem; }
-    .btn-save-template { font-size: .8rem; padding: .35rem .8rem; border: 1.5px solid var(--primary); color: var(--primary); background: #fff; border-radius: 6px; cursor: pointer; font-family: inherit; transition: background .15s; }
+    .btn-save-template { font-size: .8rem; padding: .35rem .8rem; border: 1.5px solid var(--primary); color: var(--primary); background: #fff; border-radius: 6px; cursor: pointer; font-family: inherit; transition: background .15s; white-space: nowrap; }
     .btn-save-template:hover { background: #ede9fe; }
-    .template-row { margin-top: .7rem; }
     .template-chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .template-chip { font-size: .82rem; padding: 4px 12px; border-radius: 20px; font-family: inherit; }
     .template-chip.filled { background: #eef2ff; border: 1.5px solid var(--primary); color: var(--primary); cursor: pointer; transition: background .15s, color .15s; }
@@ -69,6 +67,15 @@
     .template-chip.empty { background: #f1f5f9; border: 1.5px dashed var(--border); color: var(--muted); }
     .save-template-hint { font-size: .9rem; color: var(--text); margin-bottom: .5rem; line-height: 1.6; }
     .template-replace-options { display: flex; flex-direction: column; gap: .5rem; }
+    /* ── 案件摘要工具列（tab 收納） ── */
+    .summary-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; gap: .6rem; }
+    .summary-head label { margin: 0; }
+    .tool-tabs { display: flex; gap: 2px; margin-top: .55rem; border-bottom: 1.5px solid var(--border); }
+    .tool-tab { font-size: .85rem; padding: .45rem .85rem; border: none; background: none; color: var(--muted); cursor: pointer; font-family: inherit; border-bottom: 2px solid transparent; margin-bottom: -1.5px; transition: color .15s, border-color .15s; }
+    .tool-tab:hover { color: var(--primary); }
+    .tool-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+    .tool-panel { padding-top: .75rem; }
+    .tool-empty { font-size: .85rem; color: var(--muted); padding: .3rem 0; }
     /* ── 匯出設定 ── */
     .export-section { padding: 1.4rem 1.6rem 0; }
     .export-section h3 { font-size: .97rem; font-weight: 600; color: var(--text); margin: 0 0 .85rem; }
@@ -360,17 +367,20 @@
         <input type="hidden" id="handlingResult" value="" />
       </div>
       <div class="field-group">
-        <label>案件摘要 <span class="required">*</span></label>
-        <textarea id="caseSummaryText" rows="18"
-          placeholder="點擊下方語句可帶入游標位置…" style="font-size:.85rem;line-height:1.7;font-family:inherit;"
-          oninput="autoSaveDraft()"></textarea>
-        <div class="summary-toolbar">
+        <div class="summary-head">
+          <label>案件摘要 <span class="required">*</span></label>
           <button type="button" class="btn-save-template" onclick="openSaveTemplateModal()">💾 存為範本</button>
         </div>
-        <!-- 個人範本（範本一二三） -->
-        <div id="caseTemplateRow" class="template-row"></div>
-        <!-- 快速語句面板 -->
-        <div id="phrasePanelContainer"></div>
+        <textarea id="caseSummaryText" rows="14"
+          placeholder="請輸入或編輯現場摘要內容…" style="font-size:.85rem;line-height:1.7;font-family:inherit;"
+          oninput="autoSaveDraft()"></textarea>
+        <!-- 工具列：點擊才在正下方展開對應工具 -->
+        <div class="tool-tabs">
+          <button type="button" class="tool-tab" data-tab="template" onclick="toggleToolTab('template')">📄 範本</button>
+          <button type="button" class="tool-tab" data-tab="options"  onclick="toggleToolTab('options')">⚡ 選項</button>
+          <button type="button" class="tool-tab" data-tab="custom"   onclick="toggleToolTab('custom')">✏️ 自訂</button>
+        </div>
+        <div id="toolPanel" class="tool-panel" hidden></div>
       </div>
       <div class="modal-info">⏱ 結案時間將自動記錄為目前時間</div>
     </div>
@@ -929,37 +939,82 @@ function saveCustomPhrases() {
   }, 800);
 }
 
-function renderPhrasePanel(source) {
-  const opts  = CASE_OPTIONS[source] || [];
-  const saved = _customPhrases;
-  const esc = t => t.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+// ── 工具列 tab（範本／選項／自訂，點擊才展開） ──
+let _activeToolTab = null;
 
-  let h = `<div class="phrase-section">`;
-  if (opts.length) {
-    h += `<div class="phrase-label">📋 問卷選項快速帶入</div><div class="phrase-chips">`;
-    opts.forEach(o => { h += `<button type="button" class="phrase-chip" onclick="insertPhrase('${esc(o)}')">${o}</button>`; });
-    h += `</div>`;
+function toggleToolTab(tab) {
+  const panel = document.getElementById('toolPanel');
+  if (_activeToolTab === tab) {
+    _activeToolTab = null;
+    panel.hidden = true;
+    panel.innerHTML = '';
+  } else {
+    _activeToolTab = tab;
+    panel.innerHTML = renderToolContent(tab);
+    panel.hidden = false;
   }
-  h += `<div class="phrase-label" style="margin-top:.6rem">✏️ 自訂語句（點一下帶入；點兩下重新編輯；修改後自動儲存）</div><div class="custom-phrase-grid">`;
+  updateToolTabUI();
+}
+
+function updateToolTabUI() {
+  document.querySelectorAll('.tool-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === _activeToolTab);
+  });
+}
+
+function refreshToolPanel() {
+  if (_activeToolTab) {
+    document.getElementById('toolPanel').innerHTML = renderToolContent(_activeToolTab);
+  }
+}
+
+function resetToolTabs() {
+  _activeToolTab = null;
+  const panel = document.getElementById('toolPanel');
+  panel.hidden = true;
+  panel.innerHTML = '';
+  updateToolTabUI();
+}
+
+function renderToolContent(tab) {
+  if (tab === 'template') return renderTemplateContent();
+  if (tab === 'options')  return renderOptionsContent();
+  if (tab === 'custom')   return renderCustomContent();
+  return '';
+}
+
+function renderOptionsContent() {
+  const opts = CASE_OPTIONS[_currentSource] || [];
+  const esc = t => t.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  if (!opts.length) return `<p class="tool-empty">此案類無快速帶入選項。</p>`;
+  let h = `<div class="phrase-chips">`;
+  opts.forEach(o => { h += `<button type="button" class="phrase-chip" onclick="insertPhrase('${esc(o)}')">${o}</button>`; });
+  h += `</div>`;
+  return h;
+}
+
+function renderCustomContent() {
+  const saved = _customPhrases;
+  let h = `<div class="phrase-label" style="margin-top:0">點一下帶入；點兩下重新編輯；修改後自動儲存</div><div class="custom-phrase-grid">`;
   for (let i = 0; i < 10; i++) {
     const v = (saved[i] || '').replace(/"/g,'&quot;');
     h += `<input type="text" id="cp${i}" class="custom-phrase-input" value="${v}" placeholder="自訂語句 ${i+1}"
       onchange="saveCustomPhrases()"
       onclick="handlePhraseClick(this)" />`;
   }
-  h += `</div></div>`;
-  document.getElementById('phrasePanelContainer').innerHTML = h;
+  h += `</div>`;
+  return h;
 }
 
 // ════════════════════════════════════════════════════════
 // 個人案件摘要範本（依 email × 案類，最多 3 個）
 // ════════════════════════════════════════════════════════
-let _caseTemplates        = [null, null, null];
-let _currentTemplateSource = '';
-let _saveTemplateTarget   = -1;
+let _caseTemplates  = [null, null, null];
+let _currentSource  = '';
+let _saveTemplateTarget = -1;
 
 async function loadCaseTemplates(source) {
-  _currentTemplateSource = source;
+  _currentSource = source;
   _caseTemplates = [null, null, null];
   const { data } = await sb.from('user_case_templates')
     .select('templates')
@@ -978,15 +1033,15 @@ async function loadCaseTemplates(source) {
 async function persistCaseTemplates() {
   await sb.from('user_case_templates').upsert({
     user_email: S.user.email,
-    source:     _currentTemplateSource,
+    source:     _currentSource,
     templates:  _caseTemplates,
     updated_at: new Date().toISOString(),
   });
 }
 
-function renderCaseTemplateRow() {
+function renderTemplateContent() {
   const esc = t => String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  let h = `<div class="phrase-label">📄 個人範本（點選帶入；點「存為範本」儲存目前摘要）</div><div class="template-chips">`;
+  let h = `<div class="phrase-label" style="margin-top:0">點選帶入；點上方「存為範本」儲存目前摘要</div><div class="template-chips">`;
   for (let i = 0; i < 3; i++) {
     const t = _caseTemplates[i];
     if (t) {
@@ -996,7 +1051,7 @@ function renderCaseTemplateRow() {
     }
   }
   h += `</div>`;
-  document.getElementById('caseTemplateRow').innerHTML = h;
+  return h;
 }
 
 async function applyCaseTemplate(i) {
@@ -1076,7 +1131,7 @@ async function confirmSaveTemplate() {
   const content = document.getElementById('caseSummaryText').value;
   _caseTemplates[_saveTemplateTarget] = { name, content };
   await persistCaseTemplates();
-  renderCaseTemplateRow();
+  refreshToolPanel();
   hideSaveTemplateModal();
   showToast(`✅ 已儲存為「${name}」`);
 }
@@ -1151,14 +1206,10 @@ async function showCloseCaseModal(id) {
   document.getElementById('caseSummaryText').value =
     draft?.case_summary ?? (sub ? buildTemplate(sub) : '');
 
-  document.getElementById('phrasePanelContainer').innerHTML = '';
-  document.getElementById('caseTemplateRow').innerHTML = '';
-  if (sub?.source) renderPhrasePanel(sub.source);
+  _currentSource = sub?.source || '';
+  await loadCaseTemplates(_currentSource);
+  resetToolTabs();   // 工具列預設收合，點擊才展開
   document.getElementById('closeCaseModal').hidden = false;
-
-  // 載入並顯示個人案件摘要範本
-  await loadCaseTemplates(sub?.source || '');
-  renderCaseTemplateRow();
 }
 
 function hideCloseCaseModal() {
