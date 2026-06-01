@@ -175,6 +175,7 @@
         <div class="user-avatar" id="userAvatar">?</div>
         <span class="user-email" id="userEmail">–</span>
       </div>
+      <button class="btn-outline" style="width:100%;margin-bottom:.5rem" onclick="showChangePasswordModal()">🔑 修改密碼</button>
       <button class="btn-logout" onclick="handleLogout()">登出</button>
     </div>
   </aside>
@@ -422,6 +423,35 @@
 
 
 <!-- ══════════════════════════════════════════════
+     MODAL：修改密碼
+══════════════════════════════════════════════ -->
+<div id="changePasswordModal" class="modal-overlay" hidden>
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header">
+      <h3>🔑 修改密碼</h3>
+      <button class="btn-icon" onclick="hideChangePasswordModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label>新密碼（至少 6 碼）</label>
+        <input type="password" id="cpNewPassword" autocomplete="new-password" minlength="6" placeholder="••••••••" />
+      </div>
+      <div class="field-group" style="margin-top:1rem">
+        <label>再次輸入新密碼</label>
+        <input type="password" id="cpConfirmPassword" autocomplete="new-password" minlength="6" placeholder="••••••••" />
+      </div>
+      <div id="cpError" class="login-error" hidden style="margin-top:.4rem"></div>
+      <div id="cpSuccess" class="login-error" hidden style="margin-top:.4rem;background:#dcfce7;color:#15803d"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="hideChangePasswordModal()">取消</button>
+      <button class="btn-primary" id="cpBtn" onclick="confirmChangePassword()">確定修改</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
      MODAL：通用確認對話框
 ══════════════════════════════════════════════ -->
 <div id="confirmDialog" class="modal-overlay" hidden>
@@ -567,6 +597,62 @@ document.getElementById('forgotPwLink').addEventListener('click', async (e) => {
 
 async function handleLogout() {
   await sb.auth.signOut();
+}
+
+// ── 修改密碼（登入狀態下直接更新，不寄信） ──
+function showChangePasswordModal() {
+  document.getElementById('cpNewPassword').value = '';
+  document.getElementById('cpConfirmPassword').value = '';
+  document.getElementById('cpError').hidden = true;
+  document.getElementById('cpSuccess').hidden = true;
+  const btn = document.getElementById('cpBtn');
+  btn.disabled = false;
+  btn.textContent = '確定修改';
+  document.getElementById('changePasswordModal').hidden = false;
+}
+
+function hideChangePasswordModal() {
+  document.getElementById('changePasswordModal').hidden = true;
+}
+
+async function confirmChangePassword() {
+  const pw1 = document.getElementById('cpNewPassword').value;
+  const pw2 = document.getElementById('cpConfirmPassword').value;
+  const errEl = document.getElementById('cpError');
+  const okEl  = document.getElementById('cpSuccess');
+  const btn   = document.getElementById('cpBtn');
+
+  errEl.hidden = true;
+  okEl.hidden  = true;
+
+  if (pw1.length < 6) {
+    errEl.textContent = '密碼至少需 6 碼。';
+    errEl.hidden = false;
+    return;
+  }
+  if (pw1 !== pw2) {
+    errEl.textContent = '兩次輸入的密碼不一致。';
+    errEl.hidden = false;
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '修改中…';
+
+  const { error } = await sb.auth.updateUser({ password: pw1 });
+
+  if (error) {
+    errEl.textContent = error.message || '修改失敗，請稍後再試。';
+    errEl.hidden = false;
+    btn.disabled = false;
+    btn.textContent = '確定修改';
+    return;
+  }
+
+  okEl.textContent = '密碼已更新！下次登入請使用新密碼。';
+  okEl.hidden = false;
+  btn.textContent = '已完成';
+  setTimeout(hideChangePasswordModal, 1500);
 }
 
 function showLoginPage() {
