@@ -60,6 +60,8 @@
     /* ── 個人案件摘要範本 ── */
     .btn-save-template { font-size: .8rem; padding: .35rem .8rem; border: 1.5px solid var(--primary); color: var(--primary); background: #fff; border-radius: 6px; cursor: pointer; font-family: inherit; transition: background .15s; white-space: nowrap; }
     .btn-save-template:hover { background: #ede9fe; }
+    .btn-toggle-summary { font-size: .8rem; padding: .35rem .8rem; border: 1.5px solid var(--danger); color: var(--danger); background: #fff; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 700; transition: background .15s; white-space: nowrap; }
+    .btn-toggle-summary:hover { background: #fee2e2; }
     .template-chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .template-chip { font-size: .82rem; padding: 4px 12px; border-radius: 20px; font-family: inherit; }
     .template-chip.filled { background: #eef2ff; border: 1.5px solid var(--primary); color: var(--primary); cursor: pointer; transition: background .15s, color .15s; }
@@ -375,8 +377,7 @@
         <div class="summary-head">
           <label>案件摘要 <span class="required" id="summaryRequired">*</span></label>
           <div style="display:flex;gap:.5rem;align-items:center">
-            <button type="button" id="toggleSummaryBtn" class="btn-outline"
-              style="font-size:.78rem;padding:.28rem .7rem;line-height:1.4"
+            <button type="button" id="toggleSummaryBtn" class="btn-toggle-summary"
               onclick="toggleSummary()">關閉摘要</button>
             <button type="button" class="btn-save-template" id="btnSaveTemplate" onclick="openSaveTemplateModal()">💾 存為範本</button>
           </div>
@@ -1303,9 +1304,8 @@ function applySummaryToggle() {
   if (skip) document.getElementById('toolPanel').hidden = true;
   const btn = document.getElementById('toggleSummaryBtn');
   btn.textContent = skip ? '開啟摘要' : '關閉摘要';
-  btn.style.background    = skip ? 'var(--primary)' : '';
+  btn.style.background    = skip ? 'var(--danger)' : '';
   btn.style.color         = skip ? '#fff' : '';
-  btn.style.borderColor   = skip ? 'var(--primary)' : '';
 }
 async function autoSaveDraft() {
   if (!S.pendingId) return;
