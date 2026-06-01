@@ -6,7 +6,1834 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
+  <tit<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>問卷管理後台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+  <style>
+    /* ── 番號管理 ── */
+    .content-wrap { padding: 1.5rem; background: #fff; border-radius: 8px; border: 1px solid var(--border); }
+    .roster-hint { font-size: .85rem; color: var(--muted); margin-bottom: 1.25rem; }
+    .roster-grid { display: flex; flex-direction: column; }
+    .roster-row { display: grid; grid-template-columns: 64px 1fr 1fr auto; gap: 10px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .roster-row:last-child { border-bottom: none; }
+    .roster-num { font-weight: 700; color: var(--primary); font-size: .95rem; }
+    .roster-input { padding: .5rem .75rem; border: 1.5px solid var(--border); border-radius: 6px; font-size: .9rem; font-family: inherit; transition: border-color .2s; width: 100%; }
+    .roster-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,.12); }
+
+    /* ── 值班月曆 ── */
+    .cal-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
+    .cal-title { font-size: 1.1rem; font-weight: 700; min-width: 110px; text-align: center; }
+    .cal-dow-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+    .cal-dow-label { text-align: center; font-size: .75rem; font-weight: 600; color: var(--muted); padding: 4px 0; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-cell { border: 1.5px solid var(--border); border-radius: 6px; padding: 6px 4px; min-height: 68px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .cal-cell.empty { background: #f8fafc; border-color: transparent; }
+    .cal-cell.today { border-color: var(--primary); background: #f5f3ff; }
+    .cal-day { font-size: .8rem; font-weight: 600; color: var(--text); }
+    .cal-cell.today .cal-day { color: var(--primary); }
+    .cal-select { width: 100%; font-size: .75rem; padding: 3px 2px; border: 1px solid var(--border); border-radius: 4px; background: #fff; cursor: pointer; text-align: center; }
+    .cal-select:focus { outline: none; border-color: var(--primary); }
+    .cal-save-bar { margin-top: 1.25rem; display: flex; justify-content: flex-end; }
+    @media (max-width: 600px) {
+      .roster-row { grid-template-columns: 52px 1fr 1fr auto; gap: 6px; }
+      .cal-cell { min-height: 54px; padding: 4px 2px; }
+      .cal-select { font-size: .7rem; }
+    }
+    /* ── 定型稿快速語句 ── */
+    .phrase-section { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: .9rem; }
+    .phrase-label { font-size: .78rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .45rem; }
+    .phrase-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: .65rem; }
+    .phrase-chip { background: #f1f5f9; border: 1.5px solid var(--border); border-radius: 20px; padding: 3px 11px; font-size: .82rem; font-family: inherit; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+    .phrase-chip:hover { background: #ede9fe; border-color: var(--primary); color: var(--primary); }
+    .custom-phrase-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .custom-phrase-input { padding: 5px 9px; border: 1.5px solid var(--border); border-radius: 6px; font-size: .82rem; font-family: inherit; transition: border-color .2s; cursor: pointer; }
+    .custom-phrase-input:focus { outline: none; border-color: var(--primary); cursor: text; }
+    .custom-phrase-input:hover:not(:focus) { border-color: var(--primary); background: #fafafe; }
+    /* ── 處理結果選項（比照問卷端 option-item） ── */
+    .hr-option-group { display: flex; flex-direction: column; gap: .5rem; margin-top: .35rem; }
+    .hr-option-item { display: flex; align-items: center; gap: .65rem; padding: .65rem .9rem; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; transition: border-color .2s, background .2s; user-select: none; }
+    .hr-option-item:hover { border-color: var(--primary); background: #f5f3ff; }
+    .hr-option-item input[type="radio"] { width: 16px; height: 16px; accent-color: var(--primary); flex-shrink: 0; margin: 0; }
+    .hr-option-item span { font-size: .92rem; }
+    .hr-option-item.selected { border-color: var(--primary); background: #ede9fe; }
+    /* ── 個人案件摘要範本 ── */
+    .btn-save-template { font-size: .8rem; padding: .35rem .8rem; border: 1.5px solid var(--primary); color: var(--primary); background: #fff; border-radius: 6px; cursor: pointer; font-family: inherit; transition: background .15s; white-space: nowrap; }
+    .btn-save-template:hover { background: #ede9fe; }
+    .template-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .template-chip { font-size: .82rem; padding: 4px 12px; border-radius: 20px; font-family: inherit; }
+    .template-chip.filled { background: #eef2ff; border: 1.5px solid var(--primary); color: var(--primary); cursor: pointer; transition: background .15s, color .15s; }
+    .template-chip.filled:hover { background: var(--primary); color: #fff; }
+    .template-chip.empty { background: #f1f5f9; border: 1.5px dashed var(--border); color: var(--muted); }
+    .save-template-hint { font-size: .9rem; color: var(--text); margin-bottom: .5rem; line-height: 1.6; }
+    .template-replace-options { display: flex; flex-direction: column; gap: .5rem; }
+    /* ── 案件摘要工具列（tab 收納） ── */
+    .summary-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; gap: .6rem; }
+    .summary-head label { margin: 0; }
+    .tool-tabs { display: flex; gap: 2px; margin-top: .55rem; border-bottom: 1.5px solid var(--border); }
+    .tool-tab { font-size: .85rem; padding: .45rem .85rem; border: none; background: none; color: var(--muted); cursor: pointer; font-family: inherit; border-bottom: 2px solid transparent; margin-bottom: -1.5px; transition: color .15s, border-color .15s; }
+    .tool-tab:hover { color: var(--primary); }
+    .tool-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+    .tool-panel { padding-top: .75rem; }
+    .tool-empty { font-size: .85rem; color: var(--muted); padding: .3rem 0; }
+    /* ── 匯出設定 ── */
+    .export-section { padding: 1.4rem 1.6rem 0; }
+    .export-section h3 { font-size: .97rem; font-weight: 600; color: var(--text); margin: 0 0 .85rem; }
+    .export-email-row { display: flex; gap: .6rem; align-items: center; margin-bottom: .6rem; max-width: 480px; }
+    .export-email-row input { flex: 1; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .92rem; font-family: inherit; }
+    .export-email-row input:focus { outline: none; border-color: var(--primary); }
+    .export-hint { font-size: .82rem; color: var(--muted); margin: 0 0 .9rem; }
+    .export-warn-box { background: #fff5f5; border: 1.5px solid #fc8181; border-radius: 8px; padding: .7rem 1rem; margin: .8rem 1.6rem 0; color: #c53030; font-size: .86rem; line-height: 1.6; }
+    .export-log-wrap { margin: 0 1.6rem; overflow-x: auto; }
+    .export-log-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+    .export-log-table th { text-align: left; padding: .5rem .7rem; background: #f8fafc; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 600; white-space: nowrap; }
+    .export-log-table td { padding: .55rem .7rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .export-log-table tr:last-child td { border-bottom: none; }
+    .export-ok  { color: #2f855a; font-weight: 600; }
+    .export-err { color: #c53030; font-weight: 600; }
+    .export-err-msg  { color: #c53030; font-size: .78rem; max-width: 200px; word-break: break-all; margin-top: 3px; }
+    .export-warn-msg { color: #b7791f; font-size: .78rem; max-width: 200px; word-break: break-all; margin-top: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="login-icon">📋</span>
+      <h1>問卷管理後台</h1>
+      <p>限內部授權人員使用</p>
+    </div>
+    <form id="loginForm" novalidate>
+      <div class="field-group">
+        <label for="loginEmail">電子郵件</label>
+        <input type="email" id="loginEmail" placeholder="your@company.com"
+               autocomplete="email" required />
+      </div>
+      <div class="field-group">
+        <label for="loginPassword">密碼</label>
+        <input type="password" id="loginPassword" placeholder="••••••••"
+               autocomplete="current-password" required />
+      </div>
+      <div id="loginError" class="login-error" hidden></div>
+      <button type="submit" class="btn-primary full-width" id="loginBtn">登入</button>
+    </form>
+    <div style="text-align:center;margin-top:1rem;">
+      <a href="#" id="forgotPwLink" style="color:var(--primary);font-size:.85rem;text-decoration:none;">忘記密碼？</a>
+    </div>
+    <div id="resetMsg" hidden style="margin-top:.9rem;font-size:.84rem;text-align:center;padding:.6rem .8rem;border-radius:8px;"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     APP SHELL（登入後顯示）
+══════════════════════════════════════════════ -->
+<div id="appShell" hidden>
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">📋</span>
+      <span>問卷後台</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-view="submissions"
+              onclick="switchView('submissions')">
+        <span class="nav-icon">📥</span>
+        <span>回應管理</span>
+        <span class="nav-badge" id="activeBadge">0</span>
+      </button>
+      <button class="nav-item" data-view="cases"
+              onclick="switchView('cases')">
+        <span class="nav-icon">📁</span>
+        <span>結案紀錄</span>
+      </button>
+      <button class="nav-item" data-view="roster"
+              onclick="switchView('roster')">
+        <span class="nav-icon">👤</span>
+        <span>番號管理</span>
+      </button>
+      <button class="nav-item" data-view="calendar"
+              onclick="switchView('calendar')">
+        <span class="nav-icon">📅</span>
+        <span>值班月曆</span>
+      </button>
+      <button class="nav-item" data-view="export"
+              onclick="switchView('export')">
+        <span class="nav-icon">📤</span>
+        <span>系統定期清理</span>
+        <span class="nav-badge" id="exportFailBadge" style="display:none;background:#e53e3e">!</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <span class="user-email" id="userEmail">–</span>
+      </div>
+      <button class="btn-logout" onclick="handleLogout()">登出</button>
+    </div>
+  </aside>
+
+  <!-- ── Main Area ── -->
+  <div class="main-area">
+
+    <!-- ── 回應管理 View ── -->
+    <div id="view-submissions" class="view-panel">
+      <header class="view-header">
+        <h2>回應管理</h2>
+        <div class="stat-chips">
+          <span class="chip chip-new">新進 <strong id="countNew">0</strong></span>
+          <span class="chip chip-proc">處理中 <strong id="countProc">0</strong></span>
+          <span class="chip chip-done">已結案 <strong id="countDone">0</strong></span>
+        </div>
+      </header>
+
+      <div class="filter-bar">
+        <div class="filter-tabs">
+          <button class="tab active" data-f="active"   onclick="setFilter('active')">待處理</button>
+          <button class="tab"        data-f="已結案"   onclick="setFilter('已結案')">已結案</button>
+          <button class="tab"        data-f="all"      onclick="setFilter('all')">全部</button>
+        </div>
+        <input type="search" id="searchInput" class="search-input"
+               placeholder="搜尋姓名或案件類別…" />
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="sortable" onclick="toggleSort('submitted_at')">
+                填寫時間 <span class="sort-arrow" id="sort-submitted_at">↕</span>
+              </th>
+              <th>姓名</th>
+              <th>手機號碼</th>
+              <th>案件類別</th>
+              <th>狀態</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="submissionsBody">
+            <tr><td colspan="6" class="loading-row">載入中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div><!-- /view-submissions -->
+
+    <!-- ── 結案紀錄 View ── -->
+    <div id="view-cases" class="view-panel" hidden>
+      <header class="view-header">
+        <h2>結案紀錄</h2>
+        <button class="btn-outline" onclick="exportCSV()">⬇ 匯出 CSV</button>
+      </header>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>結案時間</th>
+              <th>填寫者姓名</th>
+              <th>手機號碼</th>
+              <th>案件類別</th>
+              <th>處理人員</th>
+              <th>處理結果摘要</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="casesBody">
+            <tr><td colspan="7" class="loading-row">載入中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div><!-- /view-cases -->
+
+    <!-- ── 番號管理 View ── -->
+    <div id="view-roster" class="view-panel" hidden>
+      <header class="view-header">
+        <h2>番號管理</h2>
+      </header>
+      <div class="content-wrap">
+        <p class="roster-hint">設定第 1–5 番的值班人員姓名與手機號碼，各番獨立儲存。儲存後當日填表人員即可在送出申請後看到今日值班人員的聯絡資訊。</p>
+        <div class="roster-grid" id="rosterGrid">
+          <div style="text-align:center; padding:2rem; color:var(--muted)">載入中…</div>
+        </div>
+      </div>
+    </div><!-- /view-roster -->
+
+    <!-- ── 值班月曆 View ── -->
+    <div id="view-calendar" class="view-panel" hidden>
+      <header class="view-header">
+        <h2>值班月曆</h2>
+      </header>
+      <div class="content-wrap">
+        <div class="cal-toolbar">
+          <button class="btn-outline" onclick="prevMonth()">◀</button>
+          <span class="cal-title" id="calTitle"></span>
+          <button class="btn-outline" onclick="nextMonth()">▶</button>
+        </div>
+        <div class="cal-dow-header">
+          <div class="cal-dow-label">日</div>
+          <div class="cal-dow-label">一</div>
+          <div class="cal-dow-label">二</div>
+          <div class="cal-dow-label">三</div>
+          <div class="cal-dow-label">四</div>
+          <div class="cal-dow-label">五</div>
+          <div class="cal-dow-label">六</div>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-save-bar">
+          <button class="btn-primary" onclick="saveCalendar()">💾 儲存本月排班</button>
+        </div>
+      </div>
+    </div><!-- /view-calendar -->
+
+    <!-- ── 匯出設定 View ── -->
+    <div id="view-export" class="view-panel" hidden>
+      <header class="view-header">
+        <h2>系統定期清理</h2>
+      </header>
+
+      <!-- 失敗警告 -->
+      <div id="exportViewWarns"></div>
+
+      <!-- 收件信箱設定 -->
+      <div class="export-section">
+        <h3>📧 收件信箱</h3>
+        <div class="export-email-row">
+          <input type="email" id="exportEmailInput" placeholder="請輸入收件電子郵件" />
+          <button class="btn-primary" onclick="saveEmailSetting()">儲存</button>
+        </div>
+        <p class="export-hint">每月 1 日系統將自動匯出上個月結案紀錄 CSV 並寄送至此信箱，並於次月定期刪除已結案之紀錄。<br>例：115年4月份結案紀錄，於115年5月1日自動寄出，並於115年6月1日系統自動執行刪除。</p>
+        <button class="btn-outline" id="manualExportBtn" onclick="triggerExport()">
+          ▶ 立即手動匯出（上個月）
+        </button>
+      </div>
+
+      <!-- 匯出歷程 -->
+      <div class="export-section" style="margin-top:1.4rem;padding-top:1.4rem;border-top:1px solid var(--border)">
+        <h3>📋 匯出歷程</h3>
+        <div id="exportLogWrap" class="export-log-wrap">
+          <p style="color:var(--muted);font-size:.87rem">載入中…</p>
+        </div>
+      </div>
+    </div><!-- /view-export -->
+
+  </div><!-- /main-area -->
+</div><!-- /appShell -->
+
+
+<!-- ══════════════════════════════════════════════
+     SIDE PANEL：回應詳情
+══════════════════════════════════════════════ -->
+<div id="detailOverlay" class="overlay" onclick="closeDetail()"></div>
+
+<div id="detailPanel" class="side-panel">
+  <div class="panel-header">
+    <h3>回應詳情</h3>
+    <button class="btn-icon" onclick="closeDetail()">✕</button>
+  </div>
+  <div class="panel-body" id="detailBody">
+    <!-- 由 JS 動態填入 -->
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     MODAL：結案
+══════════════════════════════════════════════ -->
+<div id="closeCaseModal" class="modal-overlay" hidden>
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>🔒 結案</h3>
+      <button class="btn-icon" onclick="hideCloseCaseModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label>處理人員姓名 <span class="required">*</span></label>
+        <input type="text" id="handlerName" placeholder="請輸入您的姓名" oninput="autoSaveDraft()" />
+      </div>
+      <div class="field-group">
+        <label>處理結果 <span class="required">*</span></label>
+        <div class="hr-option-group">
+          <label class="hr-option-item">
+            <input type="radio" name="handlingResultRadio" id="hrGo"    value="前往現場勘察" onchange="syncHandlingResult();autoSaveDraft()" />
+            <span>前往現場勘察</span>
+          </label>
+          <label class="hr-option-item">
+            <input type="radio" name="handlingResultRadio" id="hrDefer" value="暫緩現場勘察" onchange="syncHandlingResult();autoSaveDraft()" />
+            <span>暫緩現場勘察</span>
+          </label>
+        </div>
+        <input type="hidden" id="handlingResult" value="" />
+      </div>
+      <div class="field-group">
+        <div class="summary-head">
+          <label>案件摘要 <span class="required">*</span></label>
+          <button type="button" class="btn-save-template" onclick="openSaveTemplateModal()">💾 存為範本</button>
+        </div>
+        <textarea id="caseSummaryText" rows="14"
+          placeholder="請輸入或編輯現場摘要內容…" style="font-size:.85rem;line-height:1.7;font-family:inherit;"
+          oninput="autoSaveDraft()"></textarea>
+        <!-- 工具列：點擊才在正下方展開對應工具 -->
+        <div class="tool-tabs">
+          <button type="button" class="tool-tab" data-tab="template" onclick="toggleToolTab('template')">📄 範本</button>
+          <button type="button" class="tool-tab" data-tab="options"  onclick="toggleToolTab('options')">⚡ 選項</button>
+          <button type="button" class="tool-tab" data-tab="custom"   onclick="toggleToolTab('custom')">✏️ 自訂</button>
+        </div>
+        <div id="toolPanel" class="tool-panel" hidden></div>
+      </div>
+      <div class="modal-info">⏱ 結案時間將自動記錄為目前時間</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="hideCloseCaseModal()">取消</button>
+      <button class="btn-danger"  id="confirmCloseBtn" onclick="confirmCloseCase()">確認結案</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     MODAL：存為範本
+══════════════════════════════════════════════ -->
+<div id="saveTemplateModal" class="modal-overlay" hidden>
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header">
+      <h3>💾 存為範本</h3>
+      <button class="btn-icon" onclick="hideSaveTemplateModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="saveTemplateSlotArea"></div>
+      <div class="field-group" style="margin-top:1rem">
+        <label>範本名稱 <span class="required">*</span>（上限 8 字）</label>
+        <input type="text" id="templateNameInput" maxlength="8" placeholder="例：工安意外、燒炭自殺" />
+        <div id="templateNameErr" class="login-error" hidden style="margin-top:.4rem"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="hideSaveTemplateModal()">取消</button>
+      <button class="btn-primary" onclick="confirmSaveTemplate()">確定儲存</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     MODAL：通用確認對話框
+══════════════════════════════════════════════ -->
+<div id="confirmDialog" class="modal-overlay" hidden>
+  <div class="modal-box" style="max-width:380px">
+    <div class="modal-body" style="padding-top:1.6rem">
+      <p id="confirmDialogMsg" style="font-size:.95rem;line-height:1.65"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" id="confirmDialogNo">取消</button>
+      <button class="btn-primary" id="confirmDialogYes">確定</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     MODAL：結案詳情（查看歷史紀錄）
+══════════════════════════════════════════════ -->
+<div id="caseDetailModal" class="modal-overlay" hidden
+     onclick="hideCaseDetailModal(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>📁 結案詳情</h3>
+      <button class="btn-icon" onclick="hideCaseDetailModal()">✕</button>
+    </div>
+    <div class="modal-body" id="caseDetailBody">
+      <!-- 由 JS 動態填入 -->
+    </div>
+  </div>
+</div>
+
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+
+<!-- ══════════════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ======================================================
+// ⚙️ 設定區 — 從 Supabase 控制台複製貼上
+// ======================================================
+const SUPABASE_URL      = 'https://ljwdflbqalrchraejjjt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqd2RmbGJxYWxyY2hyYWVqamp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NTgwNDYsImV4cCI6MjA5NTQzNDA0Nn0.if3F3xB3HUwDCuCbZqK8JR-zyLIeAGT4bDHUoIeGZfc';
+
+// ── 初始化 Supabase Client ──
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+const S = {
+  user:         null,
+  submissions:  [],
+  caseRecords:  [],
+  exportLogs:   [],
+  filtered:     [],
+  filter:       'active',
+  search:       '',
+  sort:         { field: 'submitted_at', dir: 'desc' },
+  pendingId:    null,
+};
+
+// ════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════
+async function initAuth() {
+  showLoginPage();
+
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (session?.user?.email) {
+    S.user = session.user;
+    showApp();
+  } else if (session) {
+    await sb.auth.signOut();
+  }
+
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session?.user?.email) {
+      S.user = session.user;
+      showApp();
+    } else if (event === 'SIGNED_OUT') {
+      S.user = null;
+      showLoginPage();
+    }
+  });
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email    = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl    = document.getElementById('loginError');
+  const btn      = document.getElementById('loginBtn');
+
+  errEl.hidden = true;
+  btn.disabled = true;
+  btn.textContent = '登入中…';
+
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    errEl.textContent = error.message.includes('Invalid')
+      ? '帳號或密碼錯誤，請重新確認。'
+      : error.message;
+    errEl.hidden = false;
+  }
+  btn.disabled = false;
+  btn.textContent = '登入';
+});
+
+// 忘記密碼：寄送重設信，導回 set-password.html 讓本人自設新密碼
+document.getElementById('forgotPwLink').addEventListener('click', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const msg   = document.getElementById('resetMsg');
+
+  function showMsg(text, ok) {
+    msg.textContent = text;
+    msg.style.background = ok ? '#dcfce7' : '#fee2e2';
+    msg.style.color      = ok ? '#15803d' : 'var(--danger)';
+    msg.hidden = false;
+  }
+
+  if (!email || !email.includes('@')) {
+    showMsg('請先在上方輸入您的電子郵件，再點忘記密碼。', false);
+    document.getElementById('loginEmail').focus();
+    return;
+  }
+
+  const redirectTo = new URL('set-password.html', location.href).href;
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
+
+  if (error) {
+    showMsg(error.message || '寄送失敗，請稍後再試。', false);
+  } else {
+    showMsg('重設密碼信已寄出，請至信箱點擊連結設定新密碼。', true);
+  }
+});
+
+async function handleLogout() {
+  await sb.auth.signOut();
+}
+
+function showLoginPage() {
+  document.getElementById('loginScreen').style.display = '';
+  document.getElementById('appShell').hidden = true;
+}
+
+function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appShell').hidden = false;
+
+  const email = S.user?.email || '';
+  document.getElementById('userEmail').textContent = email;
+  document.getElementById('userAvatar').textContent = (email[0] || '?').toUpperCase();
+
+  loadSubmissions();
+  setupRealtime();
+  checkExportWarnings();
+  loadCustomPhrases();
+}
+
+// ════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════
+function switchView(view) {
+  document.querySelectorAll('.nav-item').forEach(el =>
+    el.classList.toggle('active', el.dataset.view === view)
+  );
+  document.getElementById('view-submissions').hidden = (view !== 'submissions');
+  document.getElementById('view-cases').hidden       = (view !== 'cases');
+  document.getElementById('view-roster').hidden      = (view !== 'roster');
+  document.getElementById('view-calendar').hidden    = (view !== 'calendar');
+  document.getElementById('view-export').hidden      = (view !== 'export');
+
+  if (view === 'cases')    loadCaseRecords();
+  if (view === 'roster')   loadRoster();
+  if (view === 'calendar') loadCalendar();
+  if (view === 'export')   loadExportView();
+}
+
+// ════════════════════════════════════════════════════════
+// 回應管理 — 資料
+// ════════════════════════════════════════════════════════
+async function loadSubmissions() {
+  const { data, error } = await sb
+    .from('submissions')
+    .select('*')
+    .order('submitted_at', { ascending: false });
+
+  if (error) { console.error('loadSubmissions:', error); return; }
+  S.submissions = data || [];
+  updateCounts();
+  applyFilter();
+}
+
+function updateCounts() {
+  const n = S.submissions.filter(s => s.status === '新進').length;
+  const p = S.submissions.filter(s => s.status === '處理中').length;
+  const d = S.submissions.filter(s => s.status === '已結案').length;
+  document.getElementById('countNew').textContent  = n;
+  document.getElementById('countProc').textContent = p;
+  document.getElementById('countDone').textContent = d;
+  document.getElementById('activeBadge').textContent = n + p;
+}
+
+function setFilter(f) {
+  S.filter = f;
+  document.querySelectorAll('.tab').forEach(el =>
+    el.classList.toggle('active', el.dataset.f === f)
+  );
+  applyFilter();
+}
+
+let _searchTimer;
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(() => {
+    S.search = e.target.value.trim().toLowerCase();
+    applyFilter();
+  }, 280);
+});
+
+function toggleSort(field) {
+  S.sort.dir = (S.sort.field === field && S.sort.dir === 'desc') ? 'asc' : 'desc';
+  S.sort.field = field;
+  document.querySelectorAll('.sort-arrow').forEach(el => el.textContent = '↕');
+  const arrow = document.getElementById('sort-' + field);
+  if (arrow) arrow.textContent = (S.sort.dir === 'asc') ? '↑' : '↓';
+  applyFilter();
+}
+
+function applyFilter() {
+  let list = [...S.submissions];
+
+  if (S.filter === 'active') {
+    list = list.filter(s => s.status !== '已結案');
+  } else if (S.filter !== 'all') {
+    list = list.filter(s => s.status === S.filter);
+  }
+
+  if (S.search) {
+    list = list.filter(s =>
+      (s.name   || '').toLowerCase().includes(S.search) ||
+      (s.source || '').toLowerCase().includes(S.search)
+    );
+  }
+
+  list.sort((a, b) => {
+    const { field, dir } = S.sort;
+    const va = a[field] ?? '';
+    const vb = b[field] ?? '';
+    const cmp = String(va).localeCompare(String(vb), 'zh-TW');
+    return dir === 'asc' ? cmp : -cmp;
+  });
+
+  S.filtered = list;
+  renderSubmissions();
+}
+
+function renderSubmissions() {
+  const tbody = document.getElementById('submissionsBody');
+  if (S.filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-row">目前沒有符合條件的回應</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = S.filtered.map(s => `
+    <tr class="clickable" onclick="openDetail('${s.id}')">
+      <td>${fmt(s.submitted_at)}</td>
+      <td>${esc(s.name)}</td>
+      <td class="cell-muted">${esc(s.email)}</td>
+      <td>${esc(s.source || '–')}</td>
+      <td><span class="badge badge-${statusCls(s.status)}">${s.status}</span></td>
+      <td>
+        <button class="btn-sm"
+          onclick="event.stopPropagation(); openDetail('${s.id}')">查看</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// 詳情側邊欄
+// ════════════════════════════════════════════════════════
+function openDetail(id) {
+  const s = S.submissions.find(x => x.id === id);
+  if (!s) return;
+  const closed = s.status === '已結案';
+
+  document.getElementById('detailBody').innerHTML = `
+    <div class="detail-section">
+      <h4>基本資料</h4>
+      <dl class="detail-dl">
+        <dt>姓名</dt>    <dd>${esc(s.name)}</dd>
+        <dt>手機號碼</dt><dd>${esc(s.email)}</dd>
+        <dt>駐地單位</dt><dd>${s.phone || '–'}</dd>
+        <dt>填寫時間</dt><dd>${fmt(s.submitted_at)}</dd>
+      </dl>
+    </div>
+
+    <div class="detail-section">
+      <h4>申請案件資料</h4>
+      <dl class="detail-dl">
+        <dt>現場地址</dt>      <dd>${esc(s.location || '–')}</dd>
+        <dt>案件類別</dt>      <dd>${s.source    || '–'}</dd>
+        <dt>現場狀況勾選</dt>  <dd class="pre-wrap">${s.interests ? esc(s.interests).replace(/、/g, '\n') : '–'}</dd>
+        <dt>年籍資料及描述</dt><dd class="pre-wrap">${s.suggestion ? esc(s.suggestion) : '–'}</dd>
+      </dl>
+    </div>
+
+    <div class="detail-section">
+      <h4>處理狀態</h4>
+      <select class="status-select" ${closed ? 'disabled' : ''}
+        onchange="updateStatus('${s.id}', this.value)">
+        <option value="新進"   ${s.status === '新進'   ? 'selected' : ''}>🔵 新進</option>
+        <option value="處理中" ${s.status === '處理中' ? 'selected' : ''}>🟡 處理中</option>
+        <option value="已結案" disabled ${closed ? 'selected' : ''}>🟢 已結案</option>
+      </select>
+    </div>
+
+    <div class="detail-section">
+      <h4>內部備註 <small style="font-weight:400;text-transform:none;color:var(--muted)">（填寫者不可見）</small></h4>
+      <textarea class="note-textarea" id="noteArea" rows="4"
+        ${closed ? 'disabled' : ''}
+        placeholder="供內部人員記錄追蹤進度、溝通事項…"
+      >${s.internal_note ? esc(s.internal_note) : ''}</textarea>
+      ${!closed ? `<button class="btn-sm mt-sm" onclick="saveNote('${s.id}')">儲存備註</button>` : ''}
+    </div>
+
+    ${!closed ? `
+    <div class="detail-section">
+      <button class="btn-danger full-width" onclick="showCloseCaseModal('${s.id}')">
+        🔒 結案
+      </button>
+    </div>
+    ` : `
+    <div class="detail-section">
+      <div class="closed-notice">
+        ✅ 此案已結案，詳細結案紀錄請至「結案紀錄」查看
+      </div>
+    </div>
+    `}
+  `;
+
+  document.getElementById('detailPanel').classList.add('open');
+  document.getElementById('detailOverlay').classList.add('show');
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').classList.remove('open');
+  document.getElementById('detailOverlay').classList.remove('show');
+}
+
+async function updateStatus(id, status) {
+  const { error } = await sb.from('submissions').update({ status }).eq('id', id);
+  if (error) { showToast('❌ 更新失敗', 'error'); return; }
+  const idx = S.submissions.findIndex(s => s.id === id);
+  if (idx !== -1) S.submissions[idx].status = status;
+  updateCounts(); applyFilter();
+  showToast('✅ 狀態已更新');
+}
+
+async function saveNote(id) {
+  const note = document.getElementById('noteArea')?.value ?? '';
+  const { error } = await sb.from('submissions').update({ internal_note: note }).eq('id', id);
+  if (error) { showToast('❌ 儲存失敗', 'error'); return; }
+  const idx = S.submissions.findIndex(s => s.id === id);
+  if (idx !== -1) S.submissions[idx].internal_note = note;
+  showToast('✅ 備註已儲存');
+}
+
+// ════════════════════════════════════════════════════════
+// 結案 Modal
+// ════════════════════════════════════════════════════════
+function closeAllModals() {
+  document.getElementById('closeCaseModal').hidden = true;
+  document.getElementById('caseDetailModal').hidden = true;
+  document.getElementById('saveTemplateModal').hidden = true;
+  document.getElementById('confirmDialog').hidden = true;
+  S.pendingId = null;
+}
+
+// ── 問卷選項（與 index.html 同步，若修改問卷請一併更新此處）──
+const CASE_OPTIONS = {
+  '死亡案':  ['死者與家人同住','死者由家人發現','死者身分可以確認','死者有病史（現場有藥袋、處方籤）','現場擺設整齊，未發現打鬥痕跡','死者大體（臉部、頭部、頸部、四肢）未發現明顯傷勢','現場未發現明顯血跡','家屬對死者死因初步沒有意見'],
+  '聚眾鬥毆':['現場傷者已經送醫治療','現場傷者可能有生命危險','現場傷者意識清楚，傷勢已包紮，可製作筆錄','現場兇手已經抓到，並已坦承犯案','現場案發經過有監視器影像','現場案發經過有第三人目擊，可以提供案發經過','現場凶器已經找到，並妥善保管'],
+  '竊盜案':  ['現場有監視器影像可供調閱','現場為密閉空間(非開放之工地、戶外)','現場未發現明顯破壞或侵入情形','現場未發現明顯翻動情形','現場失竊物品主要為電纜線','現場發現非被害人遺留之飲料手套等物品','本案現場特殊，無法保留至翌日','本案被害人有緊急事由，無法等候至翌日','本案被害人為長官請託或其他特殊人士'],
+  '其他':    ['本案為重大刑案（兇殺、強盜、槍擊或其他重大刑案）','本案被害人受傷或死亡','本案現場為戶外，難以保留','本案現場為室內，目前已封鎖現場'],
+};
+
+function _parseSugg(s) {
+  const r = {};
+  (s || '').split('\n').forEach(l => { const i = l.indexOf('：'); if (i > -1) r[l.slice(0,i)] = l.slice(i+1); });
+  return r;
+}
+
+function buildTemplate(sub) {
+  const src = sub.source || '其他';
+  const interests = sub.interests || '（請填入）';
+  const p = _parseSugg(sub.suggestion);
+  const deathM  = p['死亡方式'] || '';
+  const gender  = p['性別']     || '';
+  const birth   = p['出生年份'] ? `出生年份 ${p['出生年份']}` : '';
+  const nation  = p['國籍']     || '';
+  const suspect = p['涉嫌人']   || '';
+  const victimParts = [gender, birth, nation, suspect ? `涉嫌人：${suspect}` : ''].filter(Boolean);
+  const victimLine  = victimParts.join('，') || '（請填入）';
+
+  const head = `案由：OO所轄內民眾疑似${src}現場勘察\n\n二、勘察時間：115年　月　日　時　分\n\n三、勘察地點：${sub.location || '（請填入）'}\n\n四、案情摘要：\n`;
+
+  if (src === '死亡案') {
+    return head +
+`死者（${victimLine}）由關係人　　發現，隨即通知救護及警方到場。案經　　通知本隊鑑識小隊前往現場勘察，以協助釐清案情。
+
+五、勘察摘要：
+(一)現場狀況：${interests}
+(二)死亡方式：${deathM || '（請填入）'}
+(三)死者情形：${victimLine}
+(四)勘察結果：
+
+六、分析研判：
+(一)本案初步排除他殺之可能，詳細死因俟相驗後確認。
+(二)
+
+七、本案目前無媒體關注詢問。
+
+職　　　謹陳`;
+  }
+  if (src === '聚眾鬥毆') {
+    return head +
+`案經　　通知本隊鑑識小隊前往現場勘察，以協助釐清案情。
+被害人情形：${victimLine}
+
+五、勘察摘要：
+(一)現場狀況：${interests}
+(二)被害人情形：${victimLine}
+(三)涉嫌人情形：${suspect || '（請填入）'}
+(四)勘察結果：
+
+六、分析研判：
+(一)
+(二)
+
+七、本案目前無媒體關注詢問。
+
+職　　　謹陳`;
+  }
+  if (src === '竊盜案') {
+    const theftTime   = p['請求支援時間']       || '（請填入）';
+    const theftRecord = p['被害人筆錄及採證同意書'] || '（請填入）';
+    return head +
+`被害人（${victimLine}）發現財物遭竊，隨即通報警方。案經　　通知本隊鑑識小隊前往現場採集跡證。
+${suspect ? `涉嫌人情形：${suspect}` : ''}
+
+五、勘察摘要：
+(一)請求支援時間：${theftTime}
+(二)現場狀況：${interests}
+(三)被害人情形：${victimLine}
+(四)涉嫌人掌握情形：${suspect || '（請填入）'}
+(五)被害人筆錄及採證同意書：${theftRecord}
+(六)勘察結果：
+
+六、分析研判：
+(一)
+(二)
+
+七、本案目前無媒體關注詢問。
+
+職　　　謹陳`;
+  }
+  return head +
+`案經　　通知本隊鑑識小隊前往現場勘察，以協助釐清案情。
+${victimLine !== '（請填入）' ? `被害人情形：${victimLine}` : ''}
+
+五、勘察摘要：
+(一)現場狀況：${interests}
+(二)被害人情形：${victimLine}
+(三)勘察結果：
+
+六、分析研判：
+(一)
+(二)
+
+七、本案目前無媒體關注詢問。
+
+職　　　謹陳`;
+}
+
+function syncHandlingResult() {
+  const checked = document.querySelector('[name="handlingResultRadio"]:checked');
+  document.getElementById('handlingResult').value = checked ? checked.value : '';
+}
+
+function insertPhrase(text) {
+  const ta = document.getElementById('caseSummaryText');
+  const s = ta.selectionStart, e = ta.selectionEnd, v = ta.value;
+  ta.value = v.slice(0, s) + text + v.slice(e);
+  ta.selectionStart = ta.selectionEnd = s + text.length;
+  ta.focus();
+  autoSaveDraft();
+}
+
+let _phraseClickTimer = null;
+function handlePhraseClick(input) {
+  if (_phraseClickTimer) {
+    // 雙擊：進入編輯模式
+    clearTimeout(_phraseClickTimer);
+    _phraseClickTimer = null;
+    input.select();
+  } else {
+    // 等待看是否為雙擊
+    _phraseClickTimer = setTimeout(() => {
+      _phraseClickTimer = null;
+      // 單擊：帶入語句
+      const v = input.value.trim();
+      if (v) { insertPhrase(v); input.blur(); }
+    }, 220);
+  }
+}
+
+let _customPhrases   = Array(10).fill('');
+let _phraseSaveTimer = null;
+
+async function loadCustomPhrases() {
+  const { data } = await sb.from('user_phrases')
+    .select('phrases')
+    .eq('user_email', S.user.email)
+    .maybeSingle();
+  const arr = data?.phrases;
+  _customPhrases = (Array.isArray(arr) && arr.length === 10) ? arr : Array(10).fill('');
+}
+
+function saveCustomPhrases() {
+  const arr = [];
+  for (let i = 0; i < 10; i++) arr.push(document.getElementById('cp'+i)?.value || '');
+  _customPhrases = arr;
+  clearTimeout(_phraseSaveTimer);
+  _phraseSaveTimer = setTimeout(async () => {
+    await sb.from('user_phrases').upsert({
+      user_email:  S.user.email,
+      phrases:     arr,
+      updated_at:  new Date().toISOString(),
+    });
+  }, 800);
+}
+
+// ── 工具列 tab（範本／選項／自訂，點擊才展開） ──
+let _activeToolTab = null;
+
+function toggleToolTab(tab) {
+  const panel = document.getElementById('toolPanel');
+  if (_activeToolTab === tab) {
+    _activeToolTab = null;
+    panel.hidden = true;
+    panel.innerHTML = '';
+  } else {
+    _activeToolTab = tab;
+    panel.innerHTML = renderToolContent(tab);
+    panel.hidden = false;
+  }
+  updateToolTabUI();
+}
+
+function updateToolTabUI() {
+  document.querySelectorAll('.tool-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === _activeToolTab);
+  });
+}
+
+function refreshToolPanel() {
+  if (_activeToolTab) {
+    document.getElementById('toolPanel').innerHTML = renderToolContent(_activeToolTab);
+  }
+}
+
+function resetToolTabs() {
+  _activeToolTab = null;
+  const panel = document.getElementById('toolPanel');
+  panel.hidden = true;
+  panel.innerHTML = '';
+  updateToolTabUI();
+}
+
+function renderToolContent(tab) {
+  if (tab === 'template') return renderTemplateContent();
+  if (tab === 'options')  return renderOptionsContent();
+  if (tab === 'custom')   return renderCustomContent();
+  return '';
+}
+
+function renderOptionsContent() {
+  const opts = CASE_OPTIONS[_currentSource] || [];
+  const esc = t => t.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  if (!opts.length) return `<p class="tool-empty">此案類無快速帶入選項。</p>`;
+  let h = `<div class="phrase-chips">`;
+  opts.forEach(o => { h += `<button type="button" class="phrase-chip" onclick="insertPhrase('${esc(o)}')">${o}</button>`; });
+  h += `</div>`;
+  return h;
+}
+
+function renderCustomContent() {
+  const saved = _customPhrases;
+  let h = `<div class="phrase-label" style="margin-top:0">點一下帶入；點兩下重新編輯；修改後自動儲存</div><div class="custom-phrase-grid">`;
+  for (let i = 0; i < 10; i++) {
+    const v = (saved[i] || '').replace(/"/g,'&quot;');
+    h += `<input type="text" id="cp${i}" class="custom-phrase-input" value="${v}" placeholder="自訂語句 ${i+1}"
+      onchange="saveCustomPhrases()"
+      onclick="handlePhraseClick(this)" />`;
+  }
+  h += `</div>`;
+  return h;
+}
+
+// ════════════════════════════════════════════════════════
+// 個人案件摘要範本（依 email × 案類，最多 3 個）
+// ════════════════════════════════════════════════════════
+let _caseTemplates  = [null, null, null];
+let _currentSource  = '';
+let _saveTemplateTarget = -1;
+
+async function loadCaseTemplates(source) {
+  _currentSource = source;
+  _caseTemplates = [null, null, null];
+  const { data } = await sb.from('user_case_templates')
+    .select('templates')
+    .eq('user_email', S.user.email)
+    .eq('source', source)
+    .maybeSingle();
+  const arr = data?.templates;
+  if (Array.isArray(arr)) {
+    for (let i = 0; i < 3; i++) {
+      const t = arr[i];
+      _caseTemplates[i] = (t && typeof t === 'object' && t.name) ? { name: t.name, content: t.content || '' } : null;
+    }
+  }
+}
+
+async function persistCaseTemplates() {
+  await sb.from('user_case_templates').upsert({
+    user_email: S.user.email,
+    source:     _currentSource,
+    templates:  _caseTemplates,
+    updated_at: new Date().toISOString(),
+  });
+}
+
+function renderTemplateContent() {
+  const esc = t => String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let h = `<div class="phrase-label" style="margin-top:0">點選帶入；點上方「存為範本」儲存目前摘要</div><div class="template-chips">`;
+  for (let i = 0; i < 3; i++) {
+    const t = _caseTemplates[i];
+    if (t) {
+      h += `<button type="button" class="template-chip filled" onclick="applyCaseTemplate(${i})">範本${i+1}・${esc(t.name)}</button>`;
+    } else {
+      h += `<span class="template-chip empty">範本${i+1}（空）</span>`;
+    }
+  }
+  h += `</div>`;
+  return h;
+}
+
+async function applyCaseTemplate(i) {
+  const t = _caseTemplates[i];
+  if (!t) return;
+  const ta = document.getElementById('caseSummaryText');
+  if (ta.value.trim()) {
+    const ok = await customConfirm(`確定以範本「${t.name}」取代目前的案件摘要內容嗎？此動作無法復原。`);
+    if (!ok) return;
+  }
+  ta.value = t.content;
+  autoSaveDraft();
+  showToast(`✅ 已帶入範本「${t.name}」`);
+}
+
+function openSaveTemplateModal() {
+  const content = document.getElementById('caseSummaryText').value;
+  if (!content.trim()) {
+    showToast('❌ 請先填寫案件摘要', 'error');
+    return;
+  }
+  const slotArea = document.getElementById('saveTemplateSlotArea');
+  const nameInput = document.getElementById('templateNameInput');
+  document.getElementById('templateNameErr').hidden = true;
+
+  const emptyIdx = _caseTemplates.findIndex(t => !t);
+  if (emptyIdx !== -1) {
+    // 還有空位：自動指定第一個空位
+    _saveTemplateTarget = emptyIdx;
+    slotArea.innerHTML = `<p class="save-template-hint">目前內容將儲存至 <strong>範本${emptyIdx+1}</strong>，請輸入名稱：</p>`;
+    nameInput.value = '';
+  } else {
+    // 範本已滿：詢問要取代哪一個
+    _saveTemplateTarget = -1;
+    const escName = t => String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    let opts = `<p class="save-template-hint">範本欄已滿，請選擇要取代的範本：</p><div class="template-replace-options">`;
+    for (let i = 0; i < 3; i++) {
+      opts += `<label class="hr-option-item">
+        <input type="radio" name="replaceSlot" value="${i}" onchange="onReplaceSlotChange(${i})" />
+        <span>範本${i+1}：${escName(_caseTemplates[i].name)}</span>
+      </label>`;
+    }
+    opts += `</div>`;
+    slotArea.innerHTML = opts;
+    nameInput.value = '';
+  }
+  document.getElementById('saveTemplateModal').hidden = false;
+  setTimeout(() => nameInput.focus(), 120);
+}
+
+function onReplaceSlotChange(i) {
+  _saveTemplateTarget = i;
+  // 預填該範本原本的名稱，方便沿用
+  const nameInput = document.getElementById('templateNameInput');
+  if (!nameInput.value.trim() && _caseTemplates[i]) nameInput.value = _caseTemplates[i].name;
+}
+
+function hideSaveTemplateModal() {
+  document.getElementById('saveTemplateModal').hidden = true;
+}
+
+async function confirmSaveTemplate() {
+  const errEl = document.getElementById('templateNameErr');
+  const name  = document.getElementById('templateNameInput').value.trim();
+  errEl.hidden = true;
+
+  if (_saveTemplateTarget === -1) {
+    errEl.textContent = '請選擇要取代的範本'; errEl.hidden = false; return;
+  }
+  if (!name) {
+    errEl.textContent = '請輸入範本名稱'; errEl.hidden = false; return;
+  }
+  if (name.length > 8) {
+    errEl.textContent = '範本名稱請勿超過 8 字'; errEl.hidden = false; return;
+  }
+
+  const content = document.getElementById('caseSummaryText').value;
+  _caseTemplates[_saveTemplateTarget] = { name, content };
+  await persistCaseTemplates();
+  refreshToolPanel();
+  hideSaveTemplateModal();
+  showToast(`✅ 已儲存為「${name}」`);
+}
+
+// ── 通用確認對話框（回傳 Promise<boolean>）──
+function customConfirm(message) {
+  return new Promise(resolve => {
+    const dlg = document.getElementById('confirmDialog');
+    document.getElementById('confirmDialogMsg').textContent = message;
+    const yes = document.getElementById('confirmDialogYes');
+    const no  = document.getElementById('confirmDialogNo');
+    const cleanup = (result) => {
+      dlg.hidden = true;
+      yes.onclick = null;
+      no.onclick  = null;
+      resolve(result);
+    };
+    yes.onclick = () => cleanup(true);
+    no.onclick  = () => cleanup(false);
+    dlg.hidden = false;
+  });
+}
+
+let _draftSaveTimer = null;
+async function autoSaveDraft() {
+  if (!S.pendingId) return;
+  const sub = S.submissions.find(s => s.id === S.pendingId);
+  if (!sub) return;
+
+  const handlerName    = document.getElementById('handlerName').value;
+  const handlingResult = document.getElementById('handlingResult').value;
+  const caseSummary    = document.getElementById('caseSummaryText').value;
+  const hasInput       = handlerName.trim() || handlingResult || caseSummary.trim();
+
+  // 有任何輸入且狀態為「新進」→ 自動改為「處理中」
+  if (hasInput && sub.status === '新進') {
+    await sb.from('submissions').update({ status: '處理中' }).eq('id', S.pendingId);
+    sub.status = '處理中';
+    updateCounts();
+    applyFilter();
+  }
+
+  // 防抖 800ms 後儲存草稿
+  clearTimeout(_draftSaveTimer);
+  _draftSaveTimer = setTimeout(async () => {
+    await sb.from('submissions').update({
+      case_draft: { handler_name: handlerName, handling_result: handlingResult, case_summary: caseSummary },
+    }).eq('id', S.pendingId);
+    sub.case_draft = { handler_name: handlerName, handling_result: handlingResult, case_summary: caseSummary };
+  }, 800);
+}
+
+async function showCloseCaseModal(id) {
+  closeAllModals();
+  S.pendingId = id;
+
+  // 每次開視窗都從 Supabase 取最新資料，確保跨瀏覽器草稿同步
+  const { data: freshSub } = await sb.from('submissions').select('*').eq('id', id).maybeSingle();
+  const sub = freshSub || S.submissions.find(s => s.id === id);
+  if (freshSub) {
+    const idx = S.submissions.findIndex(s => s.id === id);
+    if (idx !== -1) S.submissions[idx] = freshSub;
+  }
+
+  // 有草稿則還原，否則用模板
+  const draft = sub?.case_draft;
+  // 處理人員姓名：草稿優先；若空白則帶入該填表日對應的值班番號人員（可自行修改）
+  let handlerVal = draft?.handler_name || '';
+  if (!handlerVal) handlerVal = await getDutyOfficerName(sub?.submitted_at);
+  document.getElementById('handlerName').value    = handlerVal;
+  document.getElementById('handlingResult').value = draft?.handling_result || '';
+  document.querySelectorAll('[name="handlingResultRadio"]').forEach(r => {
+    r.checked = draft?.handling_result ? r.value === draft.handling_result : false;
+  });
+  document.getElementById('caseSummaryText').value =
+    draft?.case_summary ?? (sub ? buildTemplate(sub) : '');
+
+  _currentSource = sub?.source || '';
+  await loadCaseTemplates(_currentSource);
+  resetToolTabs();   // 工具列預設收合，點擊才展開
+  document.getElementById('closeCaseModal').hidden = false;
+}
+
+function hideCloseCaseModal() {
+  document.getElementById('closeCaseModal').hidden = true;
+  S.pendingId = null;
+}
+
+async function confirmCloseCase() {
+  const handlerName     = document.getElementById('handlerName').value.trim();
+  const handlingResult  = document.getElementById('handlingResult').value.trim();
+  const caseSummary     = document.getElementById('caseSummaryText').value.trim();
+
+  if (!handlerName || !handlingResult || !caseSummary) {
+    showToast('❌ 請填寫所有必填欄位', 'error');
+    return;
+  }
+
+  const sub = S.submissions.find(s => s.id === S.pendingId);
+  if (!sub) return;
+
+  const btn = document.getElementById('confirmCloseBtn');
+  btn.disabled = true;
+  btn.textContent = '結案中…';
+
+  const { error } = await sb.from('case_records').insert({
+    submission_id:        S.pendingId,
+    handler_name:         handlerName,
+    handling_result:      handlingResult,
+    case_summary:         caseSummary,
+    snapshot_name:        sub.name,
+    snapshot_email:       sub.email,
+    snapshot_phone:       sub.phone        || null,
+    snapshot_source:      sub.source       || null,
+    snapshot_interests:   sub.interests    || null,
+    snapshot_satisfaction: sub.satisfaction || null,
+    snapshot_suggestion:  sub.suggestion   || null,
+    snapshot_submitted_at: sub.submitted_at,
+  });
+
+  btn.disabled = false;
+  btn.textContent = '確認結案';
+
+  if (error) {
+    showToast('❌ 結案失敗：' + error.message, 'error');
+    return;
+  }
+
+  const idx = S.submissions.findIndex(s => s.id === S.pendingId);
+  if (idx !== -1) {
+    S.submissions[idx].status     = '已結案';
+    S.submissions[idx].case_draft = null;
+  }
+  await sb.from('submissions').update({ case_draft: null }).eq('id', S.pendingId);
+
+  hideCloseCaseModal();
+  closeDetail();
+  updateCounts();
+  applyFilter();
+  showToast('✅ 結案成功，紀錄已永久保存');
+}
+
+// ════════════════════════════════════════════════════════
+// 結案紀錄
+// ════════════════════════════════════════════════════════
+async function loadCaseRecords() {
+  const { data, error } = await sb
+    .from('case_records')
+    .select('*')
+    .order('closed_at', { ascending: false });
+
+  if (error) { console.error('loadCaseRecords:', error); return; }
+  S.caseRecords = data || [];
+  renderCaseRecords();
+}
+
+function renderCaseRecords() {
+  const tbody = document.getElementById('casesBody');
+  if (S.caseRecords.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-row">尚無結案紀錄</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = S.caseRecords.map(r => `
+    <tr>
+      <td>${fmt(r.closed_at)}</td>
+      <td>${esc(r.snapshot_name)}</td>
+      <td class="cell-muted">${esc(r.snapshot_email)}</td>
+      <td>${esc(r.snapshot_source || '–')}</td>
+      <td>${esc(r.handler_name)}</td>
+      <td class="cell-clamp">${esc(r.handling_result)}</td>
+      <td>
+        <button class="btn-sm" onclick="openCaseDetail('${r.id}')">詳情</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openCaseDetail(id) {
+  closeAllModals();
+  const r = S.caseRecords.find(x => x.id === id);
+  if (!r) return;
+
+  document.getElementById('caseDetailBody').innerHTML = `
+    <div class="case-record-wrap">
+
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">結案時間</span>
+          <span class="info-value">${fmt(r.closed_at)}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">處理人員</span>
+          <span class="info-value">${esc(r.handler_name)}</span>
+        </div>
+      </div>
+
+      <div class="case-section-block">
+        <h5>處理結果</h5>
+        <div class="text-block">${esc(r.handling_result)}</div>
+      </div>
+
+      <div class="case-section-block">
+        <h5>案件摘要</h5>
+        <div class="text-block">${esc(r.case_summary)}</div>
+      </div>
+
+      <hr class="divider" />
+
+      <div class="snapshot-header">
+        📸 原始問卷快照（結案當下的資料副本）
+      </div>
+
+      <dl class="detail-dl">
+        <dt>姓名</dt>      <dd>${esc(r.snapshot_name)}</dd>
+        <dt>手機號碼</dt>    <dd>${esc(r.snapshot_email)}</dd>
+        <dt>駐地單位</dt>    <dd>${r.snapshot_phone || '–'}</dd>
+        <dt>填寫時間</dt>    <dd>${fmt(r.snapshot_submitted_at)}</dd>
+        <dt>案件類別</dt>    <dd>${r.snapshot_source    || '–'}</dd>
+        <dt>現場狀況勾選</dt><dd class="pre-wrap">${r.snapshot_interests ? esc(r.snapshot_interests).replace(/、/g, '\n') : '–'}</dd>
+        <dt>年籍資料及描述</dt><dd class="pre-wrap">${r.snapshot_suggestion ? esc(r.snapshot_suggestion) : '–'}</dd>
+      </dl>
+
+    </div>
+  `;
+
+  document.getElementById('caseDetailModal').hidden = false;
+}
+
+function hideCaseDetailModal(e) {
+  if (e && e.target !== document.getElementById('caseDetailModal')) return;
+  document.getElementById('caseDetailModal').hidden = true;
+}
+
+// ════════════════════════════════════════════════════════
+// CSV 匯出
+// ════════════════════════════════════════════════════════
+function exportCSV() {
+  if (S.caseRecords.length === 0) {
+    showToast('目前沒有結案紀錄可匯出', 'error');
+    return;
+  }
+
+  const headers = [
+    '結案時間', '申請人姓名', '手機號碼', '駐地單位',
+    '填寫時間', '案件類別', '現場狀況', '被害人資訊',
+    '處理人員', '處理結果', '案件摘要'
+  ];
+
+  const clean = v => String(v ?? '').replace(/"/g, '""');
+
+  const rows = S.caseRecords.map(r => [
+    fmt(r.closed_at),
+    clean(r.snapshot_name),
+    clean(r.snapshot_email),
+    clean(r.snapshot_phone),
+    fmt(r.snapshot_submitted_at),
+    clean(r.snapshot_source),
+    clean(r.snapshot_interests),
+    clean(r.snapshot_suggestion),
+    clean(r.handler_name),
+    clean(r.handling_result),
+    clean(r.case_summary),
+  ].map(v => `"${v}"`));
+
+  const csv = '﻿' + [headers.map(h => `"${h}"`), ...rows]
+    .map(r => r.join(',')).join('\r\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), {
+    href: url,
+    download: `結案紀錄_${new Date().toLocaleDateString('zh-TW').replace(/\//g, '-')}.csv`
+  });
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ CSV 已匯出');
+}
+
+// ════════════════════════════════════════════════════════
+// 值班番號查詢（依填表時間推算當班人員）
+// 班次規則：每個番號值班時間為「當日 09:00 至隔日 09:00」
+// 因此填表時間若在早上 9 點前，當班日要往前推一天。
+// ════════════════════════════════════════════════════════
+function dutyDateForTimestamp(submittedAt) {
+  if (!submittedAt) return '';
+  const tz = 'Asia/Taipei';
+  const dt = new Date(submittedAt);
+  // 台北時區的日期（YYYY-MM-DD）與小時（0–23）
+  const dateStr = dt.toLocaleDateString('sv-SE', { timeZone: tz });
+  const hour = parseInt(
+    new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: '2-digit', hourCycle: 'h23' }).format(dt),
+    10
+  );
+  let [y, m, d] = dateStr.split('-').map(Number);
+  let day = new Date(Date.UTC(y, m - 1, d));
+  if (hour < 9) day = new Date(day.getTime() - 86400000);  // 9 點前算前一天的班
+  return day.toISOString().slice(0, 10);
+}
+
+async function getDutyOfficerName(submittedAt) {
+  const dutyDate = dutyDateForTimestamp(submittedAt);
+  if (!dutyDate) return '';
+  const { data: cal } = await sb
+    .from('shift_calendar').select('shift_number').eq('date', dutyDate).maybeSingle();
+  if (!cal) return '';
+  const { data: roster } = await sb
+    .from('duty_roster').select('name').eq('shift_number', cal.shift_number).maybeSingle();
+  return roster?.name || '';
+}
+
+// ════════════════════════════════════════════════════════
+// 番號管理
+// ════════════════════════════════════════════════════════
+let S_roster = [];
+
+async function loadRoster() {
+  const { data, error } = await sb
+    .from('duty_roster')
+    .select('*')
+    .order('shift_number');
+
+  if (error) showToast('❌ 番號載入失敗，請確認資料表已建立', 'error');
+  S_roster = data || [];
+  renderRoster();
+}
+
+function renderRoster() {
+  const grid = document.getElementById('rosterGrid');
+  grid.innerHTML = [1, 2, 3, 4, 5].map(n => {
+    const slot = S_roster.find(r => r.shift_number === n) || {};
+    return `
+      <div class="roster-row">
+        <span class="roster-num">第 ${n} 番</span>
+        <input type="text" class="roster-input" id="r-name-${n}"
+               value="${esc(slot.name || '')}" placeholder="姓名" />
+        <input type="tel"  class="roster-input" id="r-phone-${n}"
+               value="${esc(slot.phone || '')}" placeholder="手機號碼" />
+        <button class="btn-sm" onclick="saveRosterRow(${n})">儲存</button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function saveRosterRow(n) {
+  const name  = document.getElementById(`r-name-${n}`).value.trim();
+  const phone = document.getElementById(`r-phone-${n}`).value.trim();
+
+  const { error } = await sb.from('duty_roster')
+    .upsert({ shift_number: n, name, phone });
+
+  if (error) { showToast('❌ 儲存失敗', 'error'); return; }
+
+  const idx = S_roster.findIndex(r => r.shift_number === n);
+  if (idx !== -1) { S_roster[idx].name = name; S_roster[idx].phone = phone; }
+  else S_roster.push({ shift_number: n, name, phone });
+
+  showToast(`✅ 第 ${n} 番已儲存`);
+}
+
+// ════════════════════════════════════════════════════════
+// 值班月曆
+// ════════════════════════════════════════════════════════
+let calYear   = new Date().getFullYear();
+let calMonth  = new Date().getMonth(); // 0-indexed
+let S_shifts  = {};   // { 'YYYY-MM-DD': shift_number }
+let _calDirty = false;
+
+async function loadCalendar() {
+  const y  = calYear;
+  const m  = calMonth;
+  const first = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+  const last  = new Date(y, m + 1, 0).toISOString().split('T')[0];
+
+  const { data, error } = await sb
+    .from('shift_calendar')
+    .select('date, shift_number')
+    .gte('date', first)
+    .lte('date', last);
+
+  if (error) showToast('❌ 月曆載入失敗，請確認資料表已建立', 'error');
+
+  S_shifts = {};
+  (data || []).forEach(r => { S_shifts[r.date] = r.shift_number; });
+  _calDirty = false;
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const y = calYear;
+  const m = calMonth;
+
+  document.getElementById('calTitle').textContent = `${y} 年 ${m + 1} 月`;
+
+  const today      = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
+  const firstDow   = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+  let html = '';
+  for (let i = 0; i < firstDow; i++) {
+    html += '<div class="cal-cell empty"></div>';
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const shift   = S_shifts[dateStr] || '';
+    const isToday = dateStr === today;
+    html += `
+      <div class="cal-cell${isToday ? ' today' : ''}">
+        <span class="cal-day">${d}</span>
+        <select class="cal-select" id="cal-${dateStr}" onchange="_calDirty=true">
+          <option value="">–</option>
+          ${[1, 2, 3, 4, 5].map(n =>
+            `<option value="${n}"${shift == n ? ' selected' : ''}>番${n}</option>`
+          ).join('')}
+        </select>
+      </div>`;
+  }
+
+  document.getElementById('calGrid').innerHTML = html;
+}
+
+function prevMonth() {
+  if (_calDirty && !confirm('有未儲存的排班，確定要離開？')) return;
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  loadCalendar();
+}
+
+function nextMonth() {
+  if (_calDirty && !confirm('有未儲存的排班，確定要離開？')) return;
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  loadCalendar();
+}
+
+async function saveCalendar() {
+  const y = calYear;
+  const m = calMonth;
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+  const upserts = [];
+  const deletes = [];
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const sel     = document.getElementById(`cal-${dateStr}`);
+    const val     = sel?.value;
+
+    if (val) {
+      upserts.push({ date: dateStr, shift_number: parseInt(val) });
+    } else if (S_shifts[dateStr]) {
+      deletes.push(dateStr);
+    }
+  }
+
+  let err;
+  if (upserts.length > 0) {
+    const { error } = await sb.from('shift_calendar').upsert(upserts);
+    err = error;
+  }
+  if (!err && deletes.length > 0) {
+    const { error } = await sb.from('shift_calendar').delete().in('date', deletes);
+    err = error;
+  }
+
+  if (err) { showToast('❌ 儲存失敗：' + err.message, 'error'); return; }
+
+  upserts.forEach(r => { S_shifts[r.date] = r.shift_number; });
+  deletes.forEach(d => { delete S_shifts[d]; });
+  _calDirty = false;
+
+  showToast(`✅ ${y} 年 ${m + 1} 月排班已儲存`);
+}
+
+// ════════════════════════════════════════════════════════
+// REALTIME
+// ════════════════════════════════════════════════════════
+let _realtimeReady = false;
+function setupRealtime() {
+  if (_realtimeReady) return;
+  _realtimeReady = true;
+  sb.channel('rt-admin')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' },
+      () => loadSubmissions()
+    )
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'case_records' },
+      () => { if (!document.getElementById('view-cases').hidden) loadCaseRecords(); }
+    )
+    .subscribe();
+}
+
+// ════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════
+function fmt(d) {
+  if (!d) return '–';
+  return new Date(d).toLocaleString('zh-TW', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+function statusCls(s) {
+  return { '新進': 'new', '處理中': 'proc', '已結案': 'done' }[s] || 'new';
+}
+
+function esc(v) {
+  return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+let _toastTimer;
+function showToast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type === 'error' ? ' error' : '');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeAllModals();
+    closeDetail();
+  }
+});
+
+// ════════════════════════════════════════════════════════
+// 匯出設定
+// ════════════════════════════════════════════════════════
+async function loadExportView() {
+  // 載入收件信箱
+  const { data: settings } = await sb.from('email_settings').select('email').eq('id', 1).single();
+  const inp = document.getElementById('exportEmailInput');
+  if (inp && settings?.email) inp.value = settings.email;
+
+  // 載入匯出歷程（最近 24 筆）
+  const { data: logs } = await sb
+    .from('export_logs')
+    .select('*')
+    .order('triggered_at', { ascending: false })
+    .limit(24);
+  S.exportLogs = logs || [];
+  renderExportLogs();
+  renderExportWarnings();
+}
+
+function renderExportLogs() {
+  const wrap = document.getElementById('exportLogWrap');
+  if (!wrap) return;
+  if (!S.exportLogs.length) {
+    wrap.innerHTML = '<p style="color:var(--muted);font-size:.87rem;margin:0">尚無匯出紀錄。</p>';
+    return;
+  }
+  const rows = S.exportLogs.map(l => {
+    const month = (l.export_month || '').slice(0, 7).replace('-', '/');
+    const time  = l.triggered_at
+      ? new Date(l.triggered_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
+      : '–';
+    const ok = l.status === '成功';
+    const errCell = l.error_msg
+      ? `<div class="${ok ? 'export-warn-msg' : 'export-err-msg'}">${esc(l.error_msg)}</div>`
+      : '';
+    const retryBtn = ok ? '' :
+      `<button class="btn-outline" style="font-size:.75rem;padding:2px 8px;margin-top:4px"
+         onclick="triggerExport('${(l.export_month||'').slice(0,7)}', true)">重試</button>`;
+    return `<tr>
+      <td>${month}</td>
+      <td>${time}</td>
+      <td class="${ok ? 'export-ok' : 'export-err'}">${ok ? '✅ 成功' : '❌ 失敗'}</td>
+      <td>${l.rows_exported}</td>
+      <td>${esc(l.recipient_email)}</td>
+      <td>${errCell}${retryBtn}</td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `<table class="export-log-table">
+    <thead><tr>
+      <th>月份</th><th>匯出時間</th><th>狀態</th><th>筆數</th><th>收件信箱</th><th>備註</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function renderExportWarnings() {
+  const wrap = document.getElementById('exportViewWarns');
+  if (!wrap) return;
+  const fails = S.exportLogs.filter(l => l.status === '失敗');
+  if (!fails.length) { wrap.innerHTML = ''; return; }
+  const msgs = fails.slice(0, 5).map(l => {
+    const month = (l.export_month || '').slice(0, 7).replace('-', '/');
+    return `${month} 月份匯出失敗：${esc(l.error_msg || '未知錯誤')}`;
+  }).join('<br>');
+  wrap.innerHTML = `<div class="export-warn-box">⚠️ 下列月份匯出失敗，請確認信箱設定後點選「重試」：<br>${msgs}</div>`;
+}
+
+async function checkExportWarnings() {
+  const { data: logs } = await sb
+    .from('export_logs')
+    .select('id')
+    .eq('status', '失敗')
+    .limit(1);
+  const badge = document.getElementById('exportFailBadge');
+  if (badge) badge.style.display = (logs?.length ? '' : 'none');
+}
+
+async function saveEmailSetting() {
+  const email = document.getElementById('exportEmailInput')?.value.trim() || '';
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('請輸入有效的電子郵件地址', 'error');
+    return;
+  }
+  const { error } = await sb.from('email_settings').upsert({ id: 1, email });
+  if (error) { showToast('儲存失敗：' + error.message, 'error'); return; }
+  showToast('✅ 收件信箱已儲存');
+}
+
+async function triggerExport(month = null, force = false) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { showToast('請先登入', 'error'); return; }
+
+  const btn = document.getElementById('manualExportBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '匯出中…'; }
+
+  try {
+    const body = { manual: true };
+    if (month) body.month = month;
+    if (force) body.force = true;
+
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/monthly-export`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    let result = {};
+    try { result = await resp.json(); } catch {}
+
+    if (resp.ok) {
+      if (result.message) {
+        showToast(`ℹ️ ${result.message}`);
+      } else {
+        showToast(`✅ 匯出成功，共 ${result.rows ?? 0} 筆`);
+      }
+    } else {
+      showToast(`匯出失敗：${result.error || resp.statusText}`, 'error');
+    }
+  } catch (err) {
+    showToast(`匯出失敗：${err.message}`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '▶ 立即手動匯出（上個月）'; }
+    loadExportView();
+    checkExportWarnings();
+  }
+}
+
+initAuth();
+</script>
+</body>
+</html>e>問卷管理後台</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css" />
