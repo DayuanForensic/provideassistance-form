@@ -144,7 +144,7 @@
       <button class="nav-item active" data-view="submissions"
               onclick="switchView('submissions')">
         <span class="nav-icon">📥</span>
-        <span>回應管理</span>
+        <span>案件管理</span>
         <span class="nav-badge" id="activeBadge">0</span>
       </button>
       <button class="nav-item" data-view="cases"
@@ -183,10 +183,10 @@
   <!-- ── Main Area ── -->
   <div class="main-area">
 
-    <!-- ── 回應管理 View ── -->
+    <!-- ── 案件管理 View ── -->
     <div id="view-submissions" class="view-panel">
       <header class="view-header">
-        <h2>回應管理</h2>
+        <h2>案件管理</h2>
         <div class="stat-chips">
           <span class="chip chip-new">新進 <strong id="countNew">0</strong></span>
           <span class="chip chip-proc">處理中 <strong id="countProc">0</strong></span>
@@ -328,13 +328,13 @@
 
 
 <!-- ══════════════════════════════════════════════
-     SIDE PANEL：回應詳情
+     SIDE PANEL：案件詳情
 ══════════════════════════════════════════════ -->
 <div id="detailOverlay" class="overlay" onclick="closeDetail()"></div>
 
 <div id="detailPanel" class="side-panel">
   <div class="panel-header">
-    <h3>回應詳情</h3>
+    <h3>案件詳情</h3>
     <button class="btn-icon" onclick="closeDetail()">✕</button>
   </div>
   <div class="panel-body" id="detailBody">
@@ -694,7 +694,7 @@ function switchView(view) {
 }
 
 // ════════════════════════════════════════════════════════
-// 回應管理 — 資料
+// 案件管理 — 資料
 // ════════════════════════════════════════════════════════
 async function loadSubmissions() {
   const { data, error } = await sb
@@ -775,7 +775,7 @@ function applyFilter() {
 function renderSubmissions() {
   const tbody = document.getElementById('submissionsBody');
   if (S.filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty-row">目前沒有符合條件的回應</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-row">目前沒有符合條件的案件</td></tr>`;
     return;
   }
   tbody.innerHTML = S.filtered.map(s => `
