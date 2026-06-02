@@ -686,6 +686,6 @@ body {
   .data-table td, .data-table th { padding: .55rem .5rem; font-size: .82rem; }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .col-hide-mobile { display: none !important; }
 }
