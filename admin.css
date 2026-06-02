@@ -415,7 +415,12 @@ body {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
-.panel-header h3 { font-size: .98rem; font-weight: 700; }
+.panel-header h3 { font-size: 1.1rem; font-weight: 700; }
+.panel-header .btn-icon {
+  width: 40px; height: 40px;
+  font-size: 1.6rem; font-weight: 700;
+  color: var(--text);
+}
 
 .panel-body {
   flex: 1;
@@ -423,23 +428,27 @@ body {
   padding: 1.25rem 1.4rem;
 }
 
-.detail-section { margin-bottom: 1.5rem; }
+.detail-section { margin-bottom: 1.8rem; }
 .detail-section h4 {
-  font-size: .72rem;
+  font-size: 1rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .07em;
-  color: var(--muted);
-  margin-bottom: .7rem;
+  letter-spacing: .01em;
+  color: var(--primary);
+  margin-bottom: .9rem;
+  padding: .4rem 0 .45rem .7rem;
+  border-left: 4px solid var(--primary);
+  border-bottom: 1.5px solid #e0e7ff;
+  background: linear-gradient(to right, #f5f3ff, transparent);
+  border-radius: 3px;
 }
 
 .detail-dl {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: .38rem .75rem;
+  gap: .55rem .9rem;
 }
-.detail-dl dt { font-size: .8rem; color: var(--muted); font-weight: 500; white-space: nowrap; padding-top: 1px; }
-.detail-dl dd { font-size: .86rem; color: var(--text); word-break: break-word; }
+.detail-dl dt { font-size: .85rem; color: var(--muted); font-weight: 600; white-space: nowrap; padding-top: 2px; }
+.detail-dl dd { font-size: .95rem; color: var(--text); font-weight: 500; word-break: break-word; line-height: 1.55; }
 .pre-wrap { white-space: pre-wrap; }
 
 .status-select {
@@ -688,4 +697,15 @@ body {
 
 @media (max-width: 1024px) {
   .col-hide-mobile { display: none !important; }
+
+  /* 手機端詳情視窗：整體放大、友善視覺 */
+  .panel-header { padding: 1.2rem 1.3rem; }
+  .panel-header h3 { font-size: 1.3rem; }
+  .panel-header .btn-icon { width: 46px; height: 46px; font-size: 1.9rem; }
+  .panel-body { padding: 1.3rem 1.3rem 2rem; }
+  .detail-section h4 { font-size: 1.18rem; }
+  .detail-dl { gap: .65rem 1rem; }
+  .detail-dl dt { font-size: 1rem; }
+  .detail-dl dd { font-size: 1.1rem; line-height: 1.6; }
+  .status-select { font-size: 1.05rem; }
 }
