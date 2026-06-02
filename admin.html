@@ -9,7 +9,7 @@
   <title>案件處理後台</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css?v=20260604" />
+  <link rel="stylesheet" href="admin.css?v=20260605" />
   <style>
     /* ── 番號管理 ── */
     .content-wrap { padding: 1.5rem; background: #fff; border-radius: 8px; border: 1px solid var(--border); }
@@ -812,6 +812,20 @@ function openDetail(id) {
   if (!s) return;
   const closed = s.status === '已結案';
 
+  // 現場地址：附「導航」「複製」按鈕
+  const addr = (s.location || '').trim();
+  const addrCell = addr
+    ? `<div class="addr-cell">
+         <span>${esc(addr)}</span>
+         <span class="addr-actions">
+           <a class="addr-btn" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}"
+              target="_blank" rel="noopener" title="開啟 Google 地圖導航">🗺️ 導航</a>
+           <button type="button" class="addr-btn" data-addr="${esc(addr)}"
+              onclick="copyAddress(this)" title="複製地址">📋 複製</button>
+         </span>
+       </div>`
+    : '–';
+
   document.getElementById('detailBody').innerHTML = `
     <div class="detail-section">
       <h4>基本資料</h4>
@@ -826,7 +840,7 @@ function openDetail(id) {
     <div class="detail-section">
       <h4>申請案件資料</h4>
       <dl class="detail-dl">
-        <dt>現場地址</dt>      <dd>${esc(s.location || '–')}</dd>
+        <dt>現場地址</dt>      <dd>${addrCell}</dd>
         <dt>案件類別</dt>      <dd>${s.source    || '–'}</dd>
         <dt>現場狀況勾選</dt>  <dd class="pre-wrap">${s.interests ? esc(s.interests).replace(/、/g, '\n') : '–'}</dd>
         <dt>年籍資料及描述</dt><dd class="pre-wrap">${s.suggestion ? esc(s.suggestion) : '–'}</dd>
@@ -874,6 +888,24 @@ function openDetail(id) {
 function closeDetail() {
   document.getElementById('detailPanel').classList.remove('open');
   document.getElementById('detailOverlay').classList.remove('show');
+}
+
+async function copyAddress(btn) {
+  const addr = btn.dataset.addr || '';
+  try {
+    await navigator.clipboard.writeText(addr);
+  } catch {
+    // 後援：older Safari / 非安全環境
+    const ta = document.createElement('textarea');
+    ta.value = addr;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch {}
+    document.body.removeChild(ta);
+  }
+  showToast('📋 已複製地址');
 }
 
 async function updateStatus(id, status) {
