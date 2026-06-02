@@ -848,22 +848,12 @@ function openDetail(id) {
     </div>
 
     <div class="detail-section">
-      <h4>處理狀態</h4>
-      <select class="status-select" ${closed ? 'disabled' : ''}
-        onchange="updateStatus('${s.id}', this.value)">
-        <option value="新進"   ${s.status === '新進'   ? 'selected' : ''}>🔵 新進</option>
-        <option value="處理中" ${s.status === '處理中' ? 'selected' : ''}>🟡 處理中</option>
-        <option value="已結案" disabled ${closed ? 'selected' : ''}>🟢 已結案</option>
-      </select>
-    </div>
-
-    <div class="detail-section">
-      <h4>內部備註 <small style="font-weight:400;text-transform:none;color:var(--muted)">（填寫者不可見）</small></h4>
-      <textarea class="note-textarea" id="noteArea" rows="4"
+      <h4>備註</h4>
+      <textarea class="note-textarea" id="noteArea" rows="2"
         ${closed ? 'disabled' : ''}
         placeholder="供內部人員記錄追蹤進度、溝通事項…"
+        oninput="autoSaveNote('${s.id}')"
       >${s.internal_note ? esc(s.internal_note) : ''}</textarea>
-      ${!closed ? `<button class="btn-sm mt-sm" onclick="saveNote('${s.id}')">儲存備註</button>` : ''}
     </div>
 
     ${!closed ? `
@@ -917,13 +907,18 @@ async function updateStatus(id, status) {
   showToast('✅ 狀態已更新');
 }
 
-async function saveNote(id) {
-  const note = document.getElementById('noteArea')?.value ?? '';
-  const { error } = await sb.from('submissions').update({ internal_note: note }).eq('id', id);
-  if (error) { showToast('❌ 儲存失敗', 'error'); return; }
-  const idx = S.submissions.findIndex(s => s.id === id);
-  if (idx !== -1) S.submissions[idx].internal_note = note;
-  showToast('✅ 備註已儲存');
+let _noteTimer = null;
+function autoSaveNote(id) {
+  clearTimeout(_noteTimer);
+  _noteTimer = setTimeout(async () => {
+    const note = (document.getElementById('noteArea')?.value ?? '').trim();
+    const { error } = await sb.from('submissions')
+      .update({ internal_note: note || null }).eq('id', id);
+    if (error) { showToast('❌ 備註儲存失敗', 'error'); return; }
+    const idx = S.submissions.findIndex(s => s.id === id);
+    if (idx !== -1) S.submissions[idx].internal_note = note || null;
+    showToast('✅ 備註已自動儲存');
+  }, 800);
 }
 
 // ════════════════════════════════════════════════════════
