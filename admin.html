@@ -213,10 +213,10 @@
               <th class="sortable" onclick="toggleSort('submitted_at')">
                 填寫時間 <span class="sort-arrow" id="sort-submitted_at">↕</span>
               </th>
-              <th>姓名</th>
-              <th>手機號碼</th>
+              <th class="col-hide-mobile">姓名</th>
+              <th class="col-hide-mobile">手機號碼</th>
               <th>案件類別</th>
-              <th>狀態</th>
+              <th class="col-hide-mobile">狀態</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -792,10 +792,10 @@ function renderSubmissions() {
   tbody.innerHTML = S.filtered.map(s => `
     <tr class="clickable" onclick="openDetail('${s.id}')">
       <td>${fmt(s.submitted_at)}</td>
-      <td>${esc(s.name)}</td>
-      <td class="cell-muted">${esc(s.email)}</td>
+      <td class="col-hide-mobile">${esc(s.name)}</td>
+      <td class="cell-muted col-hide-mobile">${esc(s.email)}</td>
       <td>${esc(s.source || '–')}</td>
-      <td><span class="badge badge-${statusCls(s.status)}">${s.status}</span></td>
+      <td class="col-hide-mobile"><span class="badge badge-${statusCls(s.status)}">${s.status}</span></td>
       <td>
         <button class="btn-sm"
           onclick="event.stopPropagation(); openDetail('${s.id}')">查看</button>
