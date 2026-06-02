@@ -451,6 +451,19 @@ body {
 .detail-dl dd { font-size: .95rem; color: var(--text); font-weight: 500; word-break: break-word; line-height: 1.55; }
 .pre-wrap { white-space: pre-wrap; }
 
+.addr-cell { display: flex; flex-direction: column; gap: .45rem; }
+.addr-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+.addr-btn {
+  display: inline-flex; align-items: center; gap: .2rem;
+  font-size: .82rem; font-weight: 600;
+  padding: .32rem .7rem;
+  border: 1.5px solid var(--primary); border-radius: 6px;
+  color: var(--primary); background: #fff;
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: background .15s;
+}
+.addr-btn:hover { background: #ede9fe; }
+
 .status-select {
   width: 100%;
   padding: .55rem .75rem;
@@ -708,4 +721,5 @@ body {
   .detail-dl dt { font-size: 1rem; }
   .detail-dl dd { font-size: 1.1rem; line-height: 1.6; }
   .status-select { font-size: 1.05rem; }
+  .addr-btn { font-size: .98rem; padding: .5rem 1rem; }
 }
