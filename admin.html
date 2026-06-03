@@ -1300,14 +1300,18 @@ async function confirmSaveTemplate() {
 }
 
 // ── 通用確認對話框（回傳 Promise<boolean>）──
-function customConfirm(message) {
+function customConfirm(message, { yesText = '確定', noText = '取消' } = {}) {
   return new Promise(resolve => {
     const dlg = document.getElementById('confirmDialog');
     document.getElementById('confirmDialogMsg').textContent = message;
     const yes = document.getElementById('confirmDialogYes');
     const no  = document.getElementById('confirmDialogNo');
+    yes.textContent = yesText;
+    no.textContent  = noText;
     const cleanup = (result) => {
       dlg.hidden = true;
+      yes.textContent = '確定';
+      no.textContent  = '取消';
       yes.onclick = null;
       no.onclick  = null;
       resolve(result);
@@ -1320,6 +1324,21 @@ function customConfirm(message) {
 
 let _draftSaveTimer  = null;
 let _summarySkipped  = false;
+let _summaryOriginal = '';
+
+// 計算兩段文字的相似度（0=完全不同, 1=完全相同）
+function textSimilarity(a, b) {
+  if (!a && !b) return 1;
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  const longer  = a.length >= b.length ? a : b;
+  const shorter = a.length >= b.length ? b : a;
+  let same = 0;
+  for (let i = 0; i < shorter.length; i++) {
+    if (shorter[i] === longer[i]) same++;
+  }
+  return same / longer.length;
+}
 
 function toggleSummary() {
   _summarySkipped = !_summarySkipped;
@@ -1400,6 +1419,7 @@ async function showCloseCaseModal(id) {
   }
   // textarea 一律先帶入草稿或模板內容，使用者點「開啟案件摘要編輯」時即可看到
   document.getElementById('caseSummaryText').value = realSummary ?? (sub ? buildTemplate(sub) : '');
+  _summaryOriginal = document.getElementById('caseSummaryText').value;
   applySummaryToggle();
 
   _currentSource = sub?.source || '';
@@ -1423,6 +1443,24 @@ async function confirmCloseCase() {
   if (!handlerName || !handlingResult || (!_summarySkipped && !caseSummary)) {
     showToast('❌ 請填寫所有必填欄位', 'error');
     return;
+  }
+
+  // 摘要已開啟但內容與預設範本差異不到 20%，提醒承辦人確認
+  if (!_summarySkipped && _summaryOriginal && caseSummary) {
+    const sim = textSimilarity(caseSummary, _summaryOriginal);
+    if (sim > 0.8) {
+      const proceed = await customConfirm(
+        '案件摘要內容與預設範本差異不到 20%，看起來可能尚未完成編輯。\n\n若本案確實不須填寫摘要，請按「關閉摘要後結案」；若摘要已完成，請按「確認結案」。',
+        { yesText: '確認結案', noText: '關閉摘要後結案' }
+      );
+      if (!proceed) {
+        // 自動幫使用者切換成「關閉摘要」狀態
+        _summarySkipped = true;
+        applySummaryToggle();
+        autoSaveDraft();
+        return;
+      }
+    }
   }
 
   const sub = S.submissions.find(s => s.id === S.pendingId);
