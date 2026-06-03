@@ -1326,18 +1326,30 @@ let _draftSaveTimer  = null;
 let _summarySkipped  = false;
 let _summaryOriginal = '';
 
-// 計算兩段文字的相似度（0=完全不同, 1=完全相同）
+// Dice bigram 相似度：不受插入/刪除字元的位置偏移影響
+// 0 = 完全不同，1 = 完全相同
 function textSimilarity(a, b) {
   if (!a && !b) return 1;
   if (!a || !b) return 0;
-  if (a === b) return 1;
-  const longer  = a.length >= b.length ? a : b;
-  const shorter = a.length >= b.length ? b : a;
-  let same = 0;
-  for (let i = 0; i < shorter.length; i++) {
-    if (shorter[i] === longer[i]) same++;
+  const ta = a.trim(), tb = b.trim();
+  if (ta === tb) return 1;
+  if (ta.length < 2 || tb.length < 2) return 0;
+  // 建立 bigram multiset（用 Map 計數，支援重複 bigram）
+  function bigrams(s) {
+    const m = new Map();
+    for (let i = 0; i < s.length - 1; i++) {
+      const bg = s[i] + s[i + 1];
+      m.set(bg, (m.get(bg) || 0) + 1);
+    }
+    return m;
   }
-  return same / longer.length;
+  const ma = bigrams(ta), mb = bigrams(tb);
+  let inter = 0;
+  for (const [bg, cnt] of ma) {
+    if (mb.has(bg)) inter += Math.min(cnt, mb.get(bg));
+  }
+  const total = (ta.length - 1) + (tb.length - 1);
+  return (2 * inter) / total;
 }
 
 function toggleSummary() {
@@ -1419,7 +1431,8 @@ async function showCloseCaseModal(id) {
   }
   // textarea 一律先帶入草稿或模板內容，使用者點「開啟案件摘要編輯」時即可看到
   document.getElementById('caseSummaryText').value = realSummary ?? (sub ? buildTemplate(sub) : '');
-  _summaryOriginal = document.getElementById('caseSummaryText').value;
+  // 比對基準永遠是新鮮範本，讓相似度反映「使用者是否有實質改寫」
+  _summaryOriginal = (sub ? buildTemplate(sub) : '').trim();
   applySummaryToggle();
 
   _currentSource = sub?.source || '';
