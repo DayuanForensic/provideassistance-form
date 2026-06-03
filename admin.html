@@ -73,9 +73,10 @@
     .summary-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; gap: .6rem; }
     .summary-head label { margin: 0; }
     .tool-tabs { display: flex; gap: 2px; margin-top: .55rem; border-bottom: 1.5px solid var(--border); }
-    .tool-tab { font-size: .85rem; padding: .45rem .85rem; border: none; background: none; color: var(--muted); cursor: pointer; font-family: inherit; border-bottom: 2px solid transparent; margin-bottom: -1.5px; transition: color .15s, border-color .15s; }
+    .tool-tab { font-size: .85rem; padding: .45rem 0; flex: 1; text-align: center; border: none; background: none; color: var(--muted); cursor: pointer; font-family: inherit; border-bottom: 2px solid transparent; margin-bottom: -1.5px; transition: color .15s, border-color .15s; }
     .tool-tab:hover { color: var(--primary); }
     .tool-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+    .modal-header .btn-icon { width: 40px; height: 40px; font-size: 1.5rem; font-weight: 700; color: var(--text); }
     .tool-panel { padding-top: .75rem; }
     .tool-empty { font-size: .85rem; color: var(--muted); padding: .3rem 0; }
     /* ── 匯出設定 ── */
@@ -351,7 +352,7 @@
 <div id="closeCaseModal" class="modal-overlay" hidden>
   <div class="modal-box">
     <div class="modal-header">
-      <h3>🔒 結案</h3>
+      <h3>🔒 結案（案摘編輯）</h3>
       <button class="btn-icon" onclick="hideCloseCaseModal()">✕</button>
     </div>
     <div class="modal-body">
@@ -859,7 +860,7 @@ function openDetail(id) {
     ${!closed ? `
     <div class="detail-section">
       <button class="btn-danger full-width" onclick="showCloseCaseModal('${s.id}')">
-        🔒 結案
+        🔒 結案（案摘編輯）
       </button>
     </div>
     ` : `
